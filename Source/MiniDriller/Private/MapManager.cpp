@@ -26,7 +26,7 @@ void AMapManager::InitializeMap()
 	int32 TotalBlocks = 200;
 
 	// 2. 성능 최적화를 위해 TArray의 메모리를 미리 할당
-	BlockPool.Reserve(TotalBlocks);
+	blockPool.Reserve(TotalBlocks);
 
 	// 3. 2차원 그리드 형태로 스폰하기 위한 이중 반복문 (가로 10, 세로 20)
 	for (int32 Row = 0; Row < 20; ++Row)
@@ -35,16 +35,16 @@ void AMapManager::InitializeMap()
 		{
 			// 4. 스폰할 위치 계산 (TileSize 변수 활용)
 			// X축은 가로(Col), Z축은 세로(Row, 아래로 내려가야 하므로 마이너스 값 적용)
-			FVector SpawnLocation = FVector(Col * TileSize, 0.0f, -Row * TileSize);
+			FVector SpawnLocation = FVector(Col * tileSize, 0.0f, -Row * tileSize);
 			FRotator SpawnRotation = FRotator::ZeroRotator;
 
 			// 5. 월드에 블록 스폰 (지금은 ABlock 기본 클래스를 스폰)
-			ABlock* NewBlock = GetWorld()->SpawnActor<ABlock>(ABlock::StaticClass(), SpawnLocation, SpawnRotation);
+			ABlock* NewBlock = GetWorld()->SpawnActor<ABlock>(blockClass, SpawnLocation, SpawnRotation);
 
 			// 6. 스폰된 블록을 BlockPool 배열에 추가
 			if (NewBlock != nullptr)
 			{
-				BlockPool.Add(NewBlock);
+				blockPool.Add(NewBlock);
 			}
 		}
 	}

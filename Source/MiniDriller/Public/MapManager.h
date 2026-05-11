@@ -20,10 +20,13 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	// 어떤 종류의 블록을 스폰할지 에디터에서 선택할 수 있게 합니다.
+	UPROPERTY(EditAnywhere, Category = "Map Settings")
+	TSubclassOf<class ABlock> blockClass;
 	UPROPERTY(EditAnywhere)
-	TArray<class ABlock*> BlockPool; // 재활용 블록 배열 (화면 높이 + 여유분 약 20줄)
+	TArray<class ABlock*> blockPool; // 재활용 블록 배열 (화면 높이 + 여유분 약 20줄)
 	UPROPERTY(EditAnywhere)
-	float TileSize; // 타일의 기준 크기
+	float tileSize; // 타일의 기준 크기
 	
 	void InitializeMap(); // Reserve를 통한 초기 여유분 블록 풀 스폰 및 배치
 	void RecycleTopLine(); // 플레이어가 특정 깊이 이상 내려갈 때마다 호출되어,
