@@ -11,7 +11,7 @@ class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
 
-UCLASS(Blueprintable)
+UCLASS(Blueprintable) // 외부 플러그인 때문에 한번 더 블루프린트 사용한다고 명시함
 class MINIDRILLER_API ADrillerCharacter : public APaperZDCharacter
 {
 	GENERATED_BODY()
