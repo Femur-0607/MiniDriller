@@ -13,7 +13,7 @@
 ADrillerCharacter::ADrillerCharacter()
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 	// 캐릭터 자체가 컨트롤러나 이동 방향에 따라 도는 것을 방지
 	bUseControllerRotationYaw = false;
 	
@@ -70,7 +70,8 @@ void ADrillerCharacter::Move(const FInputActionValue& value)
 
 		// 스프라이트 방향 제어 (PaperZD와 연동 시 가장 깔끔한 방식)
 		// 캐릭터 몸체는 가만히 두고 Sprite 컴포넌트만 Yaw 값을 조절해 반전시킵니다.
-		float targetYaw = (moveVector < 0.f) ? 180.f : 0.f;
+		// 왼쪽(< 0)일 때는 원본 그대로 0도, 오른쪽일 때 180도 회전
+		float targetYaw = (moveVector < 0.f) ? 0.f : 180.f;
 		GetSprite()->SetRelativeRotation(FRotator(0.f, targetYaw, 0.f));
 	}
 }

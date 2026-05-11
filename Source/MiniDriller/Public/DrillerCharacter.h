@@ -11,7 +11,7 @@ class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
 
-UCLASS()
+UCLASS(Blueprintable)
 class MINIDRILLER_API ADrillerCharacter : public APaperZDCharacter
 {
 	GENERATED_BODY()

@@ -23,7 +23,8 @@ void AMapManager::BeginPlay()
 void AMapManager::InitializeMap()
 {
 	// 1. 필요한 총 블록 개수 계산 (예: 가로 10칸, 세로 20줄이면 총 200개)
-	int32 TotalBlocks = 200;
+	// 테스트용으로 20개만 생성
+	int32 TotalBlocks = 20;
 
 	// 2. 성능 최적화를 위해 TArray의 메모리를 미리 할당
 	blockPool.Reserve(TotalBlocks);
