@@ -18,9 +18,8 @@ void ABlock::BeginPlay()
 	
 }
 
-// Called every frame
-void ABlock::Tick(float DeltaTime)
+void ABlock::OnInteracted(class ADrillerCharacter* Player)
 {
-	Super::Tick(DeltaTime);
+	UE_LOG(LogTemp, Log, TEXT("Block Interacted!"));
 }
 
