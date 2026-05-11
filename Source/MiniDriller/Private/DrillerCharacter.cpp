@@ -2,49 +2,31 @@
 
 
 #include "DrillerCharacter.h"
-#include "GameFramework/SpringArmComponent.h"
-#include "Camera/CameraComponent.h"
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
+#include "InputActionValue.h"
+#include "PaperFlipbookComponent.h"
+#include "PaperZDAnimInstance.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
 ADrillerCharacter::ADrillerCharacter()
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
+	// 캐릭터 자체가 컨트롤러나 이동 방향에 따라 도는 것을 방지
+	bUseControllerRotationYaw = false;
 	
-	SetupCamera();
-}
-
-void ADrillerCharacter::SetupCamera()
-{
-	springArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
-	springArmComponent->SetupAttachment(RootComponent);
-    
-	// 2. 2D 뷰를 위한 스프링 암 설정
-	springArmComponent->TargetArmLength = 500.f; // 카메라와 캐릭터 사이의 거리
-	springArmComponent->SetRelativeRotation(FRotator(0.f, -90.f, 0.f)); // 캐릭터의 옆면을 바라보도록 회전
-	springArmComponent->bDoCollisionTest = false; // 2D 게임이므로 장애물 충돌 검사 제외
-	springArmComponent->bInheritPitch = false;
-	springArmComponent->bInheritYaw = false;
-	springArmComponent->bInheritRoll = false;
-
-	// 3. 카메라 생성 및 부착
-	cameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	cameraComponent->SetupAttachment(springArmComponent);
-
-	// 4. 직교(Orthographic) 투영 설정
-	cameraComponent->ProjectionMode = ECameraProjectionMode::Orthographic;
-	cameraComponent->OrthoWidth = 500.f; // 화면에 보여질 가로 범위 (해상도에 맞춰 조절)
-
-	// 5. 9:16 종횡비 고정 설정
-	cameraComponent->AspectRatio = 9.f / 16.f;
-	cameraComponent->bConstrainAspectRatio = true; // 화면 비율을 강제로 고정하여 레터박스 생성
-	
-	// 카메라 래그 설정을 명시적으로 끕니다. (기본값이 false이나 가독성을 위해 작성합니다.)
-	springArmComponent->bEnableCameraLag = false;
-	springArmComponent->bEnableCameraRotationLag = false;
-
-	// 2D 게임에서는 캐릭터가 회전해도 카메라가 같이 돌지 않게 방지하는 것이 중요합니다.
-	springArmComponent->SetUsingAbsoluteRotation(true);
+	if (GetCharacterMovement())
+	{
+		// PaperZD가 애니메이션 상태(Velocity)를 기반으로 작동하게 하되, 
+		// 캐릭터 자체가 회전하는 것은 막습니다.
+		GetCharacterMovement()->bOrientRotationToMovement = false;
+        
+		// Y축 이동 고정
+		GetCharacterMovement()->bConstrainToPlane = true;
+		GetCharacterMovement()->SetPlaneConstraintNormal(FVector(0.0f, 1.0f, 0.0f));
+	}
 }
 
 // Called when the game starts or when spawned
@@ -52,12 +34,53 @@ void ADrillerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	// 1. Mapping Context 등록
+	if (APlayerController* pc = Cast<APlayerController>(GetController()))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(pc->GetLocalPlayer()))
+		{
+			subsystem->AddMappingContext(defaultMappingContext, 0);
+		}
+	}
+	
 }
-
 
 // Called to bind functionality to input
-void ADrillerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void ADrillerCharacter::SetupPlayerInputComponent(UInputComponent* playerInputComponent)
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	Super::SetupPlayerInputComponent(playerInputComponent);
+	
+	// 2. Action 바인딩
+	if (UEnhancedInputComponent* ei = CastChecked<UEnhancedInputComponent>(playerInputComponent))
+	{
+		ei->BindAction(moveAction, ETriggerEvent::Triggered, this, &ADrillerCharacter::Move);
+		ei->BindAction(digAction, ETriggerEvent::Started, this, &ADrillerCharacter::Dig);
+	}
 }
 
+void ADrillerCharacter::Move(const FInputActionValue& value)
+{
+	// 입력 값 가져오기 (float)
+	float moveVector = value.Get<float>();
+
+	if (Controller != nullptr && moveVector != 0.f)
+	{
+		// 1. 이동 입력 전달
+		AddMovementInput(FVector(1.0f, 0.0f, 0.0f), moveVector);
+
+		// 스프라이트 방향 제어 (PaperZD와 연동 시 가장 깔끔한 방식)
+		// 캐릭터 몸체는 가만히 두고 Sprite 컴포넌트만 Yaw 값을 조절해 반전시킵니다.
+		float targetYaw = (moveVector < 0.f) ? 180.f : 0.f;
+		GetSprite()->SetRelativeRotation(FRotator(0.f, targetYaw, 0.f));
+	}
+}
+
+void ADrillerCharacter::Dig()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Dig Action Triggered!"));
+}
+
+void ADrillerCharacter::HandleDeath()
+{
+	// 사망 애니메이션 처리
+}

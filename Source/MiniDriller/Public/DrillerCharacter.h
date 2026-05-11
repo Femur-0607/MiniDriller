@@ -3,18 +3,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "PaperCharacter.h"
+#include "PaperZDCharacter.h"
 #include "DrillerCharacter.generated.h"
 
 // 전방 선언: 헤더 포함을 최소화하여 컴파일 속도를 높입니다.
-class USpringArmComponent;
-class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
 
 UCLASS()
-class MINIDRILLER_API ADrillerCharacter : public APaperCharacter
+class MINIDRILLER_API ADrillerCharacter : public APaperZDCharacter
 {
 	GENERATED_BODY()
 
@@ -25,13 +23,6 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	
-	// --- 카메라 컴포넌트 ---
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-	USpringArmComponent* springArmComponent;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-	UCameraComponent* cameraComponent;
 
 	// --- Enhanced Input ---
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
@@ -43,14 +34,16 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* digAction;
 	
-	// --- 입력 처리 함수 ---
-	void Move(const FInputActionValue& value);
+	
 
 public:
 	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
 	
-	void SetupCamera(); // 카메라 초기화
+	void Move(const FInputActionValue& value); // --- 입력 처리 함수 ---
 	void Dig(); // 채굴 명령
 	void HandleDeath(); // 산소 고갈 시 사망 연출 처리
+	
+	// PaperZD 애니메이션 인스턴스를 가져오는 헬퍼 함수 (필요 시)
+	class UPaperZDAnimInstance* GetZDAnimInstance() const;
 };
