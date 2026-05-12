@@ -34,7 +34,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* digAction;
 	
-	
+	// 드릴 관련 변수
+	UPROPERTY(BlueprintReadOnly, Category = "Movement")
+	bool bIsDigging;
+
+private:
+	// 옆으로 파고 있는지 저장할 변수
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", meta = (AllowPrivateAccess = "true"))
+	bool bIsDiggingSide = false;
 
 public:
 	// Called to bind functionality to input
@@ -44,6 +51,17 @@ public:
 	void Dig(); // 채굴 명령
 	void HandleDeath(); // 산소 고갈 시 사망 연출 처리
 	
-	// PaperZD 애니메이션 인스턴스를 가져오는 헬퍼 함수 (필요 시)
-	class UPaperZDAnimInstance* GetZDAnimInstance() const;
+	// 외부(블루프린트 등)에서 상태를 읽어갈 수만 있게 해주는 읽기 전용 함수
+	UFUNCTION(BlueprintPure, Category = "State")
+	bool GetIsDigging() const;
+	
+	// 옆으로 파는지 여부를 ABP에 알려줄 함수
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	bool GetIsDiggingSide() const;
+	
+	UFUNCTION(BlueprintCallable, Category = "Actions")
+	void StartDigging();
+
+	UFUNCTION(BlueprintCallable, Category = "Actions")
+	void StopDigging();
 };

@@ -27,6 +27,17 @@ void ABlock::BeginPlay()
 
 void ABlock::OnInteracted(class ADrillerCharacter* Player)
 {
-	UE_LOG(LogTemp, Log, TEXT("Block Interacted!"));
+	// 1. 시각적, 물리적 비활성화
+	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
+	SetActorTickEnabled(false);
+
+	// 2. 이펙트나 사운드를 재생할 공간입니다.
+
+	// 3. 구독자(MapManager)들에게 내가 파괴되었음을 알립니다.
+	if (onBlockDestroyedDelegate.IsBound())
+	{
+		onBlockDestroyedDelegate.Broadcast(this);
+	}
 }
 

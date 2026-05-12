@@ -32,5 +32,7 @@ public:
 	void RecycleTopLine(); // 플레이어가 특정 깊이 이상 내려갈 때마다 호출되어,
 	//최상단 라인의 블록들을 맨 아래 라인으로 이동시킵니다. 이동 시 확률에 따라 아이템이나 장애물로 속성을 변환합니다.
 	void OnLevelUpExplosion(); // 100칸 도달 시 화면 내 모든 일반 블록을 파괴하고 나이아가라 효과 재생.
+	// 블록이 파괴될 때 델리게이트를 통해 호출되는 회수 함수
+	void ReturnBlockToPool(class ABlock* ReturnedBlock);
 	
 };

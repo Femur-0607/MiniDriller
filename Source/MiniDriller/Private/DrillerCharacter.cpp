@@ -79,6 +79,8 @@ void ADrillerCharacter::Move(const FInputActionValue& value)
 
 void ADrillerCharacter::Dig()
 {
+	StartDigging();
+	
 	// 1. 레이캐스트 시작점(캐릭터의 현재 위치)을 가져옵니다.
 	FVector rayStart = GetActorLocation();
 	// 2. 기본 채굴 방향은 아래쪽(Z: -1)으로 설정합니다.
@@ -91,7 +93,16 @@ void ADrillerCharacter::Dig()
 		// 입력값의 부호(+1 혹은 -1)에 따라 파는 방향을 결정합니다.
 		float dirX = FMath::Sign(lastInput.X);
 		digDirection = FVector(dirX, 0.f, 0.f);
+		
+		// 옆으로 파기 상태 ON
+		bIsDiggingSide = true;
 	}
+	else
+	{
+		// 아래로 파기 상태 (X축 입력이 없을 때)
+		bIsDiggingSide = false;
+	}
+	
 	// 3. 레이캐스트 끝점(시작점 + (바라보는 방향 * 채굴 사거리))을 계산합니다.
 	FVector rayEnd = rayStart + (digDirection * 42.f); // Z축 아래로 42 유닛
 	// 4. FHitResult 구조체를 선언하여 충돌 결과를 담을 바구니를 준비합니다.
@@ -112,11 +123,42 @@ void ADrillerCharacter::Dig()
 		// 부딪힌 액터가 ABlock 타입인지 확인하고 안전하게 캐스팅합니다.
 		ABlock* HitBlock = Cast<ABlock>(hit.GetActor());
     
-		// 6. 캐스팅에 성공했다면 해당 블록의 OnInteracted(this) 함수를 호출합니다.
+		// 7. 캐스팅에 성공했다면 해당 블록의 OnInteracted(this) 함수를 호출합니다.
 		if (HitBlock != nullptr)
 		{
 			HitBlock->OnInteracted(this);
 		}
+	}
+}
+
+bool ADrillerCharacter::GetIsDigging() const
+{
+	return bIsDigging;
+}
+
+bool ADrillerCharacter::GetIsDiggingSide() const
+{
+	return bIsDiggingSide;
+}
+
+void ADrillerCharacter::StartDigging()
+{
+	if (!bIsDigging)
+	{
+		bIsDigging = true;
+		// 이동 입력 제한
+		GetCharacterMovement()->DisableMovement(); 
+	}
+}
+
+// ABP에서 디깅 애니메이션 끝나면 호출하게끔 설정해놓음
+void ADrillerCharacter::StopDigging()
+{
+	if (bIsDigging)
+	{
+		bIsDigging = false;
+		// 이동 입력 다시 활성화
+		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	}
 }
 
