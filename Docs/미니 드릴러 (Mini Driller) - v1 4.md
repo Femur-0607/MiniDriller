@@ -1,9 +1,11 @@
+# 미니 드릴러 (Mini Driller) - v1.4
+
 ## 1. 프로젝트 개요 (Overview)
 
-- **장르** 2D 타임어택 무한 채굴 아케이드.
-- **개발 엔진** Unreal Engine 5.6.1.
-- **핵심 목표** 2주 내 Core Loop 완성 및 C++ 핵심 역량(메모리 풀링, 다형성, 서브시스템) 증명.
-- **Core Loop** 블록 파괴 ➡️ 캐릭터 하강 ➡️ 산소 및 난이도 관리 ➡️ 깊이에 따른 랜덤 풀링 재배치.
+- **장르** 2D 타임어택 무한 채굴 아케이드
+- **개발 엔진** Unreal Engine 5.6.1
+- **핵심 목표** 2주 내 Core Loop 완성 및 C++ 핵심 역량(메모리 풀링, 다형성, 서브시스템) 증명
+- **Core Loop** 블록 파괴 ➡️ 캐릭터 하강 ➡️ 산소 및 난이도 관리 ➡️ 깊이에 따른 랜덤 풀링 재배치
 
 ## 2. 참고 자료 (References)
 
@@ -15,14 +17,18 @@
 
 ## 3. 에셋 및 플러그인 (Assets & Plugins)
 
-- **필수 플러그인**
-    - `Paper2D` 2D 스프라이트 및 타일맵 렌더링.
-    - `PaperZD` 2D 애니메이션 상태 머신(FSM) 및 노티파이 제어.
-    - `Niagara` 파티클 시스템 구현용 내장 플러그인.
+- **플러그인**
+    - `Paper2D` 2D 스프라이트 및 타일맵 렌더링
+        - `PaperZD` 2D 애니메이션 상태 머신(FSM) 및 노티파이 제어
+            - [https://github.com/heavybullets/PaperZD/wiki](https://github.com/heavybullets/PaperZD/wiki)
+        - `Paper2D+` 데이터 기반의 체계적인 2D 캐릭터 애니메이션 및 전투 판정(Hitbox) 시스템 구축
+            - [https://github.com/Infinitegameworks/Paper2DPlus](https://github.com/Infinitegameworks/Paper2DPlus)
+    - `Paper2D+` 데이터 기반의 체계적인 2D 캐릭터 애니메이션 및 전투 판정(Hitbox) 시스템 구축.
+    - `Niagara` 파티클 시스템 구현용 내장 플러그인
 - **에셋 수급처**
-    - https://kenney.nl/ (UI, 기본 블록 타일).
-    - https://itch.io/ (2D Pixel 팩 - 캐릭터 애니메이션).
-    - https://www.spriters-resource.com/ (미스터 드릴러 레퍼런스).
+    - https://kenney.nl/ (UI, 기본 블록 타일)
+    - https://itch.io/ (2D Pixel 팩 - 캐릭터 애니메이션)
+    - https://www.spriters-resource.com/ (미스터 드릴러 레퍼런스)
         - Gemini 이미지 생성, 음악 생성
         - 에픽게임즈 - 팹 (vfx, 효과음 등)
 
@@ -47,10 +53,10 @@
 **역할** 화면에 보이는 만큼의 블록만 메모리에 유지하고, 카메라가 내려가면 화면 밖 상단 블록을 맨 아래로 순환시킵니다.
 
 - **주요 변수**
-    - `TArray<ABlock*> BlockPool` 재활용 블록 배열 (화면 높이 + 여유분 약 20줄).
-    - `float TileSize` 타일의 기준 크기.
+    - `TArray<ABlock*> BlockPool` 재활용 블록 배열 (화면 높이 + 여유분 약 20줄)
+    - `float TileSize` 타일의 기준 크기
 - **주요 함수**
-    - `void InitializeMap()` Reserve를 통한 초기 여유분 블록 풀 스폰 및 배치.
+    - `void InitializeMap()` Reserve를 통한 초기 여유분 블록 풀 스폰 및 배치
     - `void RecycleTopLine()` 플레이어가 특정 깊이 이상 내려갈 때마다 호출되어, 최상단 라인의 블록들을 맨 아래 라인으로 이동시킵니다. 이동 시 확률에 따라 아이템이나 장애물로 속성을 변환합니다.
     - `void OnLevelUpExplosion()` 100칸 도달 시 화면 내 모든 일반 블록을 파괴하고 나이아가라 효과 재생.
 
@@ -68,12 +74,15 @@
 ### ④ `ADrillerCharacter` (플레이어 캐릭터)
 
 - **역할** 카메라를 컴포넌트로 가지며 사용자 입력 처리 및 애니메이션 갱신을 담당합니다.
+- 2D 이므로 `APaperCharacter` 를 상속 받음
 - **조작계**
-    - 스페이스바 (Spacebar) 채굴 명령.
-    - 방향키 (Down, Left, Right) 이동 및 카메라 하강 유도.
+    - 카메라 컴포넌트 관리
+    - 스페이스바 (Spacebar) 채굴 명령 bool값
+    - 방향키 (Left, Right) 이동 float 및 ~~카메라 하강 유도~~
+        - 카메라는 따로 블루프린트로 리
 - **주요 함수**
-    - `void Dig()` 채굴 명령.
-    - `void HandleDeath()` 산소 고갈 시 사망 연출 처리.
+    - `void Dig()` 채굴 명령
+    - `void HandleDeath()` 산소 고갈 시 사망 연출 처리
 
 ## 5. 핵심 메커니즘 (Core Mechanics)
 
@@ -93,3 +102,7 @@
     - 플레이어의 달성률을 보여주는 업적창 UI 구현.
     - 블록별로 색상을 나눠서 인접한 색상블록 파괴.
     - 세이브 데이터 구현.
+
+[작업 기록](%EC%9E%91%EC%97%85%20%EA%B8%B0%EB%A1%9D%2035d070f75574809d9b1dd593c80a0467.md)
+
+[어려운점](%EC%96%B4%EB%A0%A4%EC%9A%B4%EC%A0%90%2035d070f75574801e80cffdd55aecc046.md)
