@@ -2,11 +2,12 @@
 
 
 #include "DrillerCharacter.h"
+
+#include "Block.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "PaperFlipbookComponent.h"
-#include "PaperZDAnimInstance.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
@@ -78,7 +79,45 @@ void ADrillerCharacter::Move(const FInputActionValue& value)
 
 void ADrillerCharacter::Dig()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Dig Action Triggered!"));
+	// 1. 레이캐스트 시작점(캐릭터의 현재 위치)을 가져옵니다.
+	FVector rayStart = GetActorLocation();
+	// 2. 기본 채굴 방향은 아래쪽(Z: -1)으로 설정합니다.
+	FVector digDirection = FVector(0.f, 0.f, -1.f);
+	// 2-1. 캐릭터에 입력된 마지막 이동 벡터를 가져옵니다.
+	FVector lastInput = GetLastMovementInputVector();
+	// 2-2. X축 입력이 존재한다면 (좌/우 이동 키를 누르고 있다면) 방향을 덮어씁니다.
+	if (!FMath::IsNearlyZero(lastInput.X))
+	{
+		// 입력값의 부호(+1 혹은 -1)에 따라 파는 방향을 결정합니다.
+		float dirX = FMath::Sign(lastInput.X);
+		digDirection = FVector(dirX, 0.f, 0.f);
+	}
+	// 3. 레이캐스트 끝점(시작점 + (바라보는 방향 * 채굴 사거리))을 계산합니다.
+	FVector rayEnd = rayStart + (digDirection * 42.f); // Z축 아래로 42 유닛
+	// 4. FHitResult 구조체를 선언하여 충돌 결과를 담을 바구니를 준비합니다.
+	FHitResult hit;
+	// 5. GetWorld()->LineTraceSingleByChannel(...) 함수를 호출하여 레이를 발사합니다.
+	FCollisionQueryParams params;
+	params.AddIgnoredActor(this); // 자기 자신을 레이캐스트 대상에서 제외합니다.
+	bool bHit = GetWorld()->LineTraceSingleByChannel(hit, rayStart, rayEnd, ECC_Visibility, params);
+	
+	// 디버그 라인 그리기 (월드, 시작점, 끝점, 색상, 지속여부, 수명, 깊이 우선, 굵기) 전처리기 사용
+#if WITH_EDITOR
+	DrawDebugLine(GetWorld(), rayStart, rayEnd, FColor::Red, false, 2.0f, 0, 2.0f);
+#endif
+	
+	// 6. 충돌한 액터가 있다면 HitResult에서 가져와 ABlock 클래스로 Cast<ABlock>을 시도합니다.
+	if (bHit)
+	{
+		// 부딪힌 액터가 ABlock 타입인지 확인하고 안전하게 캐스팅합니다.
+		ABlock* HitBlock = Cast<ABlock>(hit.GetActor());
+    
+		// 6. 캐스팅에 성공했다면 해당 블록의 OnInteracted(this) 함수를 호출합니다.
+		if (HitBlock != nullptr)
+		{
+			HitBlock->OnInteracted(this);
+		}
+	}
 }
 
 void ADrillerCharacter::HandleDeath()
