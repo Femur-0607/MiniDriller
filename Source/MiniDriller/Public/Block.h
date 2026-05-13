@@ -32,13 +32,23 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-// --- 상호작용 및 파괴 시스템 ---
+	// --- 상호작용 및 파괴 시스템 ---
 #pragma region Interaction System
 public:
-	// 플레이어와 충돌 및 상호작용 시 실행되는 함수
-	virtual void OnInteracted(class ADrillerCharacter* Player);
 	// 블록 파괴 시 호출되는 델리게이트 변수
 	FOnBlockDestroyed onBlockDestroyedDelegate;
+	
+	// 플레이어와 충돌 및 상호작용 시 실행되는 함수
+	virtual void OnInteracted(class ADrillerCharacter* Player);
+
+	// 파괴 이펙트를 담당할 플립북 컴포넌트
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	class UPaperFlipbookComponent* destructionEffectComponent;
+	
+	// 2. 애니메이션 재생이 끝났을 때 엔진이 호출해 줄 함수
+	UFUNCTION()
+	void OnDestructionEffectFinished();
+
 #pragma endregion
 
 	// --- 중력 및 낙하 시스템 ---
@@ -51,6 +61,10 @@ public:
 private:
 	// 흔들림 효과 타이머 핸들러 (유니티의 Coroutine 대체)
 	struct FTimerHandle anticipationTimerHandle;
+	float shakeOffset;
 	void StartFalling();
 #pragma endregion
+	
+	// 특정 방향으로 레이캐스트를 쏴서 부딪힌 액터를 반환하는 헬퍼 함수
+	AActor* GetActorInDirection(FVector Direction);
 };
