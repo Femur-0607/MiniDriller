@@ -32,6 +32,7 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	
 	// --- 상호작용 및 파괴 시스템 ---
 #pragma region Interaction System
 public:
@@ -48,7 +49,14 @@ public:
 	// 2. 애니메이션 재생이 끝났을 때 엔진이 호출해 줄 함수
 	UFUNCTION()
 	void OnDestructionEffectFinished();
-
+	
+protected:
+	// 유니티의 OnTriggerEnter 역할 (언리얼 AActor에 기본 내장된 함수를 덮어쓰기)
+	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
+	
+private:
+	// 전달받은 액터가 플레이어라면 압사시키는 도우미 함수
+	void TryKillPlayer(AActor* TargetActor);
 #pragma endregion
 
 	// --- 중력 및 낙하 시스템 ---
@@ -65,6 +73,6 @@ private:
 	void StartFalling();
 #pragma endregion
 	
-	// 특정 방향으로 레이캐스트를 쏴서 부딪힌 액터를 반환하는 헬퍼 함수
-	AActor* GetActorInDirection(FVector Direction);
+	// 방향과 거리를 넣으면 액터를 반환하는 헬퍼 함수 (거리를 안 넣으면 자동으로 42.f가 됨!)
+	AActor* GetActorInDirection(FVector Direction, float Distance = 42.f);
 };

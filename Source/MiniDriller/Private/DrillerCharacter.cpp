@@ -2,13 +2,14 @@
 
 
 #include "DrillerCharacter.h"
-
 #include "Block.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "PaperFlipbookComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameStatusSubsystem.h"
+#include "Components/CapsuleComponent.h"
 
 // Sets default values
 ADrillerCharacter::ADrillerCharacter()
@@ -43,7 +44,18 @@ void ADrillerCharacter::BeginPlay()
 			subsystem->AddMappingContext(defaultMappingContext, 0);
 		}
 	}
-	
+}
+
+void ADrillerCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	// 승천(Die2) 상태라면 매 프레임 위로(Z축 양수) 이동시킵니다.
+	if (bIsFloating)
+	{
+		// 스프라이트만 위로 부드럽게 둥둥 띄웁니다. (속도는 150.f, 취향껏 조절!)
+		GetSprite()->AddRelativeLocation(FVector(0.f, 0.f, 150.f * DeltaTime));
+	}
 }
 
 // Called to bind functionality to input
@@ -61,6 +73,8 @@ void ADrillerCharacter::SetupPlayerInputComponent(UInputComponent* playerInputCo
 
 void ADrillerCharacter::Move(const FInputActionValue& value)
 {
+	if (bIsDead) return;
+	
 	// 입력 값 가져오기 (float)
 	float moveVector = value.Get<float>();
 
@@ -79,6 +93,8 @@ void ADrillerCharacter::Move(const FInputActionValue& value)
 
 void ADrillerCharacter::Dig()
 {
+	if (bIsDead) return;
+	
 	StartDigging();
 	
 	// 1. 레이캐스트 시작점(캐릭터의 현재 위치)을 가져옵니다.
@@ -164,5 +180,41 @@ void ADrillerCharacter::StopDigging()
 
 void ADrillerCharacter::HandleDeath()
 {
-	// 사망 애니메이션 처리
+	if (bIsDead) return; 
+    
+	bIsDead = true; // ABP가 이 값을 보고 즉시 'Die1' 애니메이션을 틉니다.
+
+	GetCharacterMovement()->DisableMovement();
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
+
+void ADrillerCharacter::StartGhostFloat()
+{
+	// 승천 상태 ON! (Tick 함수에서 위로 올라가기 시작하고, ABP가 'Die2' 애니메이션을 틉니다)
+	bIsFloating = true;
+
+	// 기획하신 대로 정확히 2초(2.0f) 뒤에 애니메이션을 끝내고 이벤트를 호출합니다.
+	GetWorld()->GetTimerManager().SetTimer(deathTimerHandle, this, &ADrillerCharacter::FinalizeDeath, 2.0f, false);
+}
+
+void ADrillerCharacter::FinalizeDeath()
+{
+	// 승천 종료
+	bIsFloating = false;
+    
+	// 시각적으로 완전히 투명하게(사라지게) 만듭니다.
+	GetSprite()->SetHiddenInGame(true);
+
+	// 드디어 서브시스템에 찐 사망 소식을 방송(Broadcast)하여 게임 오버 창을 띄우게 합니다!
+	if (UWorld* World = GetWorld())
+	{
+		if (UGameStatusSubsystem* StatusSubsystem = World->GetSubsystem<UGameStatusSubsystem>())
+		{
+			StatusSubsystem->NotifyPlayerDeath(); 
+		}
+	}
+}
+
+// --- Getter 함수 구현 ---
+bool ADrillerCharacter::GetIsDead() const { return bIsDead; }
+bool ADrillerCharacter::GetIsFloating() const { return bIsFloating; }

@@ -2,6 +2,8 @@
 
 
 #include "MiniDriller/Public/Block.h"
+
+#include "DrillerCharacter.h"
 #include "PaperSpriteComponent.h"
 #include "PaperFlipbookComponent.h"
 
@@ -131,6 +133,28 @@ void ABlock::OnDestructionEffectFinished()
 	// 풀에 들어갔다가 다시 나올 때를 대비해 상태를 초기화합니다.
 	destructionEffectComponent->SetHiddenInGame(true);
 }
+
+void ABlock::NotifyActorBeginOverlap(AActor* OtherActor)
+{
+	Super::NotifyActorBeginOverlap(OtherActor);
+	// 1. 부딪힌 대상이 존재하고, 현재 블록이 '낙하 중(Falling)'일 때만 검사합니다.
+	if (OtherActor != nullptr && currentState == EBlockState::Falling)
+	{
+		TryKillPlayer(OtherActor);
+	}
+}
+
+void ABlock::TryKillPlayer(AActor* TargetActor)
+{
+	// 1. 방어 코드 (null 체크)
+	if (TargetActor == nullptr) return;
+
+	// 2. 플레이어인지 확인하고 맞다면 처형!
+	if (ADrillerCharacter* Player = Cast<ADrillerCharacter>(TargetActor))
+	{
+		Player->HandleDeath();
+	}
+}
 #pragma endregion
 
 // --- 중력 및 낙하 시스템 ---
@@ -165,20 +189,36 @@ void ABlock::StartFalling()
 	// 타이머에 의해 0.2초 뒤 호출됨
 	spriteComponent->SetRelativeLocation(FVector::ZeroVector); // 위치 원상복구
 	currentState = EBlockState::Falling; // 상태를 Falling으로 넘김 (이제 Tick에서 부드럽게 떨어지기 시작함)
+	
+	// --- [버그 픽스: 낙하 시작 시점에 이미 겹쳐있는 플레이어 압사 처리] ---
+	// 불필요해서 수정함
+	// --- [최적화된 버그 픽스: 배열과 반복문 없이 단일 플레이어만 직접 검사] ---
+	// 1. 현재 월드에 존재하는 첫 번째 플레이어(0번 플레이어)를 가져옵니다.
+	if (APawn* PlayerPawn = GetWorld()->GetFirstPlayerController()->GetPawn())
+	{
+		// 2. 이 블록(this)이 방금 찾은 플레이어와 겹쳐 있는지(Overlap) 가볍게 확인합니다.
+		if (IsOverlappingActor(PlayerPawn))
+		{
+			// 3. 겹쳐 있다면 우리가 아까 만든 깔끔한 처형 함수를 호출합니다!
+			TryKillPlayer(PlayerPawn);
+		}
+	}
 }
 #pragma endregion
 
-AActor* ABlock::GetActorInDirection(FVector Direction)
+AActor* ABlock::GetActorInDirection(FVector Direction, float Distance)
 {
 	FVector rayStart = GetActorLocation();
-	FVector rayEnd = rayStart + (Direction * 42.f); // 매개변수로 받은 방향으로 42.f 만큼 쏨
+	FVector rayEnd = rayStart + (Direction * Distance); // 매개변수로 받은 방향과 거리만큼 쏨
     
 	FHitResult hit;
+	// 자기자신은 레이 무시
 	FCollisionQueryParams params;
 	params.AddIgnoredActor(this);
     
 	bool bHit = GetWorld()->LineTraceSingleByChannel(hit, rayStart, rayEnd, ECC_Visibility, params);
     
+	// 전처리기로 에디터 내에서만 레이 보이게끔
 #if WITH_EDITOR
 	DrawDebugLine(GetWorld(), rayStart, rayEnd, FColor::Blue, false, 2.0f, 0, 2.0f);
 #endif
