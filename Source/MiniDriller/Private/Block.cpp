@@ -85,6 +85,10 @@ void ABlock::Tick(float DeltaTime)
 				{
 					CheckAndFall();
 				}
+				else// [탐색 트리거] 발밑에 무언가 있어서 완전히 정착함!
+				{
+					CheckMatchAndPop(); 
+				}
 			}
 			break;
 	}
@@ -241,5 +245,32 @@ void ABlock::SetBlockColor(EBlockColor NewColor, class UPaperSprite* NewSprite,c
 	if (destructionEffectComponent && NewFlipbook)
 	{
 		destructionEffectComponent->SetFlipbook(NewFlipbook);
+	}
+}
+
+void ABlock::ExecuteFloodFill(EBlockColor TargetColor, ABlock* CurrentBlock, TSet<ABlock*>& OutMatchedBlocks)
+{
+	// 기저 조건: 방어 코드 1.공간이 비어있을 때 (블록이 아닐 때), 2. 찾는 색상이 아닐 때, 3. 이미 확인한(TSet에 들어있는) 블록일 때 (핵심!)
+	if (CurrentBlock == nullptr || CurrentBlock->blockColor != TargetColor || OutMatchedBlocks.Contains(CurrentBlock))
+	{
+		return;
+	}
+	// 검사를 통과했다면 (정상적인 같은 색상의 블록이라면) 배열에 추가!
+	OutMatchedBlocks.Add(CurrentBlock);
+	
+	// --- 4방향 탐색 시작 ---
+	//현재 블록의 상/하/좌/우 4방향에 있는 액터를 가져오기
+	FVector CheckDirs[4] = { FVector(0, 0, 1), FVector(0, 0, -1), FVector(1, 0, 0), FVector(-1, 0, 0) };
+	
+	for (int32 i = 0; i < 4; ++i)
+	{
+		// 1) 액터 가져오기
+		AActor* hitActor = CurrentBlock->GetActorInDirection(CheckDirs[i]);
+        
+		// 2) ABlock으로 형변환 (실패 시 nullptr)
+		ABlock* nextBlock = Cast<ABlock>(hitActor);
+        
+		// 3) 자기 자신 호출! (nextBlock이 nullptr이어도 함수 맨 위에서 안전하게 걸러짐)
+		ExecuteFloodFill(TargetColor, nextBlock, OutMatchedBlocks);
 	}
 }
