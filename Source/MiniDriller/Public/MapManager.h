@@ -28,42 +28,36 @@ public:
 	TArray<class ABlock*> blockPool; // 재활용 블록 배열 (화면 높이 + 여유분 약 20줄)
 	UPROPERTY(EditAnywhere)
 	float tileSize; // 타일의 기준 크기
-	
-	void InitializeMap(); // Reserve를 통한 초기 여유분 블록 풀 스폰 및 배치
-	void RecycleTopLine(); // 플레이어가 특정 깊이 이상 내려갈 때마다 호출되어,
-	//최상단 라인의 블록들을 맨 아래 라인으로 이동시킵니다. 이동 시 확률에 따라 아이템이나 장애물로 속성을 변환합니다.
-	void OnLevelUpExplosion(); // 100칸 도달 시 화면 내 모든 일반 블록을 파괴하고 나이아가라 효과 재생.
-	// 블록이 파괴될 때 델리게이트를 통해 호출되는 회수 함수
-	void ReturnBlockToPool(class ABlock* ReturnedBlock);
-#pragma endregion
-	
-	// --- 블럭 색상 및 매칭 시스템 --- 
-#pragma region Color and Matching System
-public:
-	// 에디터에서 [0]:파랑, [1]:초록, [2]:빨강, [3]:노랑 스프라이트를 직접 할당할 배열
-	UPROPERTY(EditAnywhere, Category = "Map Settings")
-	TArray<class UPaperSprite*> blockSprites;
-	
-	UPROPERTY(EditAnywhere, Category = "Map Settings")
-	TArray<class UPaperFlipbook*> blockDestructionFlipbooks;
-#pragma endregion
-	
-public:
-	// [Model] 사장님의 논리적 바둑판 장부
-	UPROPERTY()
-	TMap<FIntPoint, class ABlock*> GridMap;
-
-	void RegisterBlock(int32 Col, int32 Row, class ABlock* Block);
-	void RemoveBlockFromGrid(int32 Col, int32 Row);
-	class ABlock* GetBlockAtGrid(int32 Col, int32 Row);
-	void ProcessFalling(int32 Col, int32 StartRow);
-    
-	// [수정됨] 오타 및 백슬래시 제거
-	bool IsGridEmpty(int32 Col, int32 Row);
-
-	// [복구됨] 맵의 가로 세로 최대 크기 변수
+	// 맵의 가로 세로 최대 크기 변수
 	UPROPERTY(EditAnywhere, Category = "Map Settings")
 	int32 MaxRows = 20; 
 	UPROPERTY(EditAnywhere, Category = "Map Settings")
 	int32 MaxCols = 10;
+	
+	void InitializeMap(); // Reserve를 통한 초기 여유분 블록 풀 스폰 및 배치
+	void ReturnBlockToPool(class ABlock* ReturnedBlock); // 블록이 파괴될 때 델리게이트를 통해 호출되는 회수 함수
+#pragma endregion
+	
+	// --- 블럭 색상 및 매칭 시스템 --- 
+#pragma region Color and Matching System
+	// 에디터에서 [0]:파랑, [1]:초록, [2]:빨강, [3]:노랑 스프라이트를 직접 할당할 배열
+	UPROPERTY(EditAnywhere, Category = "Map Settings")
+	TArray<class UPaperSprite*> blockSprites;
+	// 에디터에서 [0]:파랑, [1]:초록, [2]:빨강, [3]:노랑 플립북(파괴 이펙트)를 직접 할당할 배열
+	UPROPERTY(EditAnywhere, Category = "Map Settings")
+	TArray<class UPaperFlipbook*> blockDestructionFlipbooks;
+	// [Model] 사장님의 논리적 바둑판 장부
+	UPROPERTY()
+	TMap<FIntPoint, class ABlock*> GridMap;
+	
+	void RegisterBlock(int32 Col, int32 Row, class ABlock* Block);  // 블록들을 장부에 기록함
+	void RemoveBlockFromGrid(int32 Col, int32 Row); // 장부에서 좌표를 지우는 함수
+	class ABlock* GetBlockAtGrid(int32 Col, int32 Row); // 장부를 읽는 함수
+	void ProcessFalling(int32 Col, int32 StartRow); // 장부를 보고 블록 하락 시스템을 지시하는 역활
+	bool IsGridEmpty(int32 Col, int32 Row);
+#pragma endregion
 };
+
+// void RecycleTopLine(); // 플레이어가 특정 깊이 이상 내려갈 때마다 호출되어,
+//최상단 라인의 블록들을 맨 아래 라인으로 이동시킵니다. 이동 시 확률에 따라 아이템이나 장애물로 속성을 변환합니다.
+// void OnLevelUpExplosion(); // 100칸 도달 시 화면 내 모든 일반 블록을 파괴하고 나이아가라 효과 재생.

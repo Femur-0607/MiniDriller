@@ -1,7 +1,7 @@
 ﻿// 블록 풀링과 라인 재배치를 담당하는 맵 매니저 구현부
 
 
-#include "MiniDriller/Public/MapManager.h"
+#include "MapManager.h"
 #include "Block.h"
 
 
@@ -17,7 +17,6 @@ void AMapManager::BeginPlay()
 {
 	Super::BeginPlay();
 	InitializeMap();
-	
 }
 
 void AMapManager::InitializeMap()
@@ -46,8 +45,9 @@ void AMapManager::InitializeMap()
 			ABlock* newBlock = GetWorld()->SpawnActor<ABlock>(blockClass, spawnLocation, FRotator::ZeroRotator);
 			if (newBlock)
 			{
-				// [기존 코드 유지] 오너 설정, 색상 세팅, 델리게이트 연결 등
+				// 오너 설정, 색상 세팅, 델리게이트 연결 등
 				newBlock->SetOwner(this); 
+				newBlock->mapManagerRef = this;// ⭐ [의존성 주입] 블록이 태어나자마자 사장님(나 자신)의 연락처를 쥐어줍니다!
 				newBlock->SetBlockColor(randomColor, blockSprites[randomIndex], blockDestructionFlipbooks[randomIndex]);
 				newBlock->onBlockDestroyedDelegate.AddUObject(this, &AMapManager::ReturnBlockToPool);
     
@@ -84,7 +84,6 @@ void AMapManager::RegisterBlock(int32 Col, int32 Row, ABlock* Block)
 
 void AMapManager::RemoveBlockFromGrid(int32 Col, int32 Row)
 {
-	// 장부에서 해당 좌표의 기록을 깔끔하게 지웁니다.
 	GridMap.Remove(FIntPoint(Col, Row));
 }
 
@@ -113,17 +112,17 @@ void AMapManager::ProcessFalling(int32 Col, int32 StartRow)
 			// [핵심 로직] 내 밑칸(TargetRow + 1)이 비어있고, 바닥(MaxRows)을 뚫지 않는 한 끝까지 탐색!
 			while (IsGridEmpty(Col, TargetRow + 1) && (TargetRow + 1 < MaxRows))
 			{
-				TargetRow++;
+				TargetRow++; // 빈칸 수만큼 목표 좌표를 아래로 낮춤
 			}
 
 			// 밑으로 한 칸이라도 내려갈 공간이 있다면 이동 지시!
 			if (TargetRow != CurrentRow)
 			{
-				// 1. 장부(GridMap) 갱신: 옛날 자리에서 지우고, 새 자리에 등록
-				RemoveBlockFromGrid(Col, CurrentRow);
-				RegisterBlock(Col, TargetRow, BlockToFall);
+				// [데이터 선점] 화면에서 움직이기 전에 장부부터 고침 (매우 중요!)
+				RemoveBlockFromGrid(Col, CurrentRow); // 옛날 자리 지우고
+				RegisterBlock(Col, TargetRow, BlockToFall); // 새 자리 예약
 
-				// 2. 직원(블록)에게 새로운 물리적 목표 위치를 계산해서 하달!
+				// [연출 예약] 블록에게 "너 나중에 여기까지 내려와야 해"라고 목적지 전달
 				FVector NewTargetPos = FVector(Col * tileSize, 0.0f, -TargetRow * tileSize);
 				BlockToFall->PrepareToFall(NewTargetPos);
 			}
