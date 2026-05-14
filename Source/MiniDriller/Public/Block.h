@@ -8,6 +8,17 @@
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnBlockDestroyed, class ABlock*);
 
+// 블록의 색상을 정의하는 열거형
+UENUM(BlueprintType)
+enum class EBlockColor : uint8
+{
+	None,
+	Blue,
+	Green,
+	Red,
+	Yellow
+};
+
 // 블록의 현재 상태를 정의하는 열거형
 UENUM(BlueprintType)
 enum class EBlockState : uint8
@@ -75,4 +86,14 @@ private:
 	
 	// 방향과 거리를 넣으면 액터를 반환하는 헬퍼 함수 (거리를 안 넣으면 자동으로 42.f가 됨!)
 	AActor* GetActorInDirection(FVector Direction, float Distance = 42.f);
+	
+	// --- 블럭 색상 및 매칭 시스템 --- 
+#pragma region Color and Matching System
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Puzzle")
+	EBlockColor blockColor = EBlockColor::None;
+	
+	// 블록의 색상과 스프라이트(파괴 애니메이션 포함)를 동적으로 변경하는 함수
+	void SetBlockColor(EBlockColor NewColor, class UPaperSprite* NewSprite, class UPaperFlipbook* NewFlipbook);
+#pragma endregion
 };

@@ -226,3 +226,20 @@ AActor* ABlock::GetActorInDirection(FVector Direction, float Distance)
 	// 부딪힌 게 있으면 그 액터를 반환하고, 없으면 nullptr(빈 공간) 반환
 	return bHit ? hit.GetActor() : nullptr; 
 }
+
+void ABlock::SetBlockColor(EBlockColor NewColor, class UPaperSprite* NewSprite,class UPaperFlipbook* NewFlipbook)
+{
+	blockColor = NewColor;
+    
+	// 1. 스프라이트 교체 (스프라이트 에셋이 정상적으로 들어왔을 때만)
+	if (spriteComponent && NewSprite)
+	{
+		spriteComponent->SetSprite(NewSprite);
+	}
+
+	// 2. 플립북 교체 (플립북 에셋이 정상적으로 들어왔을 때만)
+	if (destructionEffectComponent && NewFlipbook)
+	{
+		destructionEffectComponent->SetFlipbook(NewFlipbook);
+	}
+}

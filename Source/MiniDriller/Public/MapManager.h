@@ -19,6 +19,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+#pragma region pool System
 public:
 	// 어떤 종류의 블록을 스폰할지 에디터에서 선택할 수 있게 합니다.
 	UPROPERTY(EditAnywhere, Category = "Map Settings")
@@ -34,5 +35,16 @@ public:
 	void OnLevelUpExplosion(); // 100칸 도달 시 화면 내 모든 일반 블록을 파괴하고 나이아가라 효과 재생.
 	// 블록이 파괴될 때 델리게이트를 통해 호출되는 회수 함수
 	void ReturnBlockToPool(class ABlock* ReturnedBlock);
+#pragma endregion
 	
+	// --- 블럭 색상 및 매칭 시스템 --- 
+#pragma region Color and Matching System
+public:
+	// 에디터에서 [0]:파랑, [1]:초록, [2]:빨강, [3]:노랑 스프라이트를 직접 할당할 배열
+	UPROPERTY(EditAnywhere, Category = "Map Settings")
+	TArray<class UPaperSprite*> blockSprites;
+	
+	UPROPERTY(EditAnywhere, Category = "Map Settings")
+	TArray<class UPaperFlipbook*> blockDestructionFlipbooks;
+#pragma endregion
 };

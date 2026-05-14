@@ -23,17 +23,20 @@ void AMapManager::BeginPlay()
 void AMapManager::InitializeMap()
 {
 	// 1. 필요한 총 블록 개수 계산 (예: 가로 10칸, 세로 20줄이면 총 200개)
-	// 테스트용으로 20개만 생성
-	int32 totalBlocks = 20;
-
+	int32 totalBlocks = 200;
+	
+	
 	// 2. 성능 최적화를 위해 TArray의 메모리를 미리 할당
 	blockPool.Reserve(totalBlocks);
 
-	// 3. 2차원 그리드 형태로 스폰하기 위한 이중 반복문 (가로 10, 세로 20)
-	for (int32 Row = 0; Row < 20; ++Row)
+	// 3. 2차원 그리드 형태로 스폰하기 위한 이중 반복문 (가로 / 20, 세로 / 10)
+	for (int32 Row = 0; Row < totalBlocks / 10; ++Row)
 	{
-		for (int32 Col = 0; Col < 10; ++Col)
+		for (int32 Col = 0; Col < totalBlocks / 20; ++Col)
 		{
+			int32 randomIndex = FMath::RandRange(0, 3); // 0번(Blue)부터 3번(Yellow) 사이의 난수 추출
+			EBlockColor randomColor = (EBlockColor)randomIndex;
+			
 			// 4. 스폰할 위치 계산 (TileSize 변수 활용)
 			// X축은 가로(Col), Z축은 세로(Row, 아래로 내려가야 하므로 마이너스 값 적용)
 			FVector spawnLocation = FVector(Col * tileSize, 0.0f, -Row * tileSize);
@@ -41,6 +44,8 @@ void AMapManager::InitializeMap()
 
 			// 5. 월드에 블록 스폰 (지금은 ABlock 기본 클래스를 스폰)
 			ABlock* newBlock = GetWorld()->SpawnActor<ABlock>(blockClass, spawnLocation, FRotator::ZeroRotator);
+			newBlock->SetBlockColor(randomColor, blockSprites[randomIndex], blockDestructionFlipbooks[randomIndex]);
+			
 			// 블록의 파괴 이벤트에 매니저의 회수 함수를 연결(구독)합니다.
 			newBlock->onBlockDestroyedDelegate.AddUObject(this, &AMapManager::ReturnBlockToPool);
 
