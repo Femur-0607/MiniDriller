@@ -4,6 +4,7 @@
 #include "MiniDriller/Public/Block.h"
 
 #include "DrillerCharacter.h"
+#include "MapManager.h"
 #include "PaperSpriteComponent.h"
 #include "PaperFlipbookComponent.h"
 
@@ -49,48 +50,35 @@ void ABlock::BeginPlay()
 void ABlock::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
+    
 	switch (currentState)
 	{
-		case EBlockState::Idle:
-			// Idle 상태일 때는 Tick이 꺼져 있어야 하므로, 여기 들어올 일은 원칙적으로 없습니다.
-			break;
-			
-		case EBlockState::Anticipating:
-			// [흔들림 연출] 스프라이트를 위,아래로 흔듭니다.
-			// GetTimeSeconds()는 게임이 시작된 후 흐른 총 시간입니다.
-			// 속도(예: 50.f)를 곱해 진동 주기를 결정하고, 진폭(예: 3.f)을 곱해 흔들리는 거리를 결정합니다.
-			shakeOffset = FMath::Sin(GetWorld()->GetTimeSeconds() * 50.f) * 3.f;
-			spriteComponent->SetRelativeLocation(FVector(0.f, 0.f, shakeOffset));
-			break;
+	case EBlockState::Idle:
+		break;
+          
+	case EBlockState::Anticipating:
+		shakeOffset = FMath::Sin(GetWorld()->GetTimeSeconds() * 50.f) * 3.f;
+		spriteComponent->SetRelativeLocation(FVector(0.f, 0.f, shakeOffset));
+		break;
 
-		case EBlockState::Falling:
-			// 1. 현재 위치 가져오기
-			FVector currentLocation = GetActorLocation();
+	case EBlockState::Falling:
+		FVector currentLocation = GetActorLocation();
 
-			// 2. 등속 보간(MoveTowards)으로 다음 프레임 위치 계산 (이동 속도는 임의로 300.f 설정)
-			FVector nextLocation = FMath::VInterpConstantTo(currentLocation, targetLocation, DeltaTime, 300.f);
+		// 사장님이 지정해준 targetLocation을 향해 부드럽게 추락!
+		FVector nextLocation = FMath::VInterpConstantTo(currentLocation, targetLocation, DeltaTime, 400.f);
+		SetActorLocation(nextLocation);
 
-			// 3. 액터 위치 업데이트
-			SetActorLocation(nextLocation);
-
-			// 4. 도착 판정 (목표 위치와의 거리가 1.0f 미만이면 도착한 것으로 간주)
-			if (FVector::Dist(currentLocation, targetLocation) < 1.0f)
-			{
-				currentState = EBlockState::Idle;
-				SetActorTickEnabled(false);
-				
-				// 내 발밑(-1.f)에 액터가 없다면(nullptr) 계속 떨어져라!
-				if (GetActorInDirection(FVector(0.f, 0.f, -1.f)) == nullptr)
-				{
-					CheckAndFall();
-				}
-				else// [탐색 트리거] 발밑에 무언가 있어서 완전히 정착함!
-				{
-					CheckMatchAndPop(); 
-				}
-			}
-			break;
+		// 목표 위치에 도착했다면?
+		if (FVector::Dist(nextLocation, targetLocation) < 1.0f)
+		{
+			SetActorLocation(targetLocation); // 그리드 오차 스냅
+			currentState = EBlockState::Idle; // 편안하게 휴식
+			SetActorTickEnabled(false);       // 심장 정지 (대기)
+             
+			// 바닥에 닿았으니 혹시 터질 게 있는지 검사
+			CheckMatch(); 
+		}
+		break;
 	}
 }
 
@@ -99,7 +87,22 @@ void ABlock::Tick(float DeltaTime)
 // 플레이어가 블록 파괴시 실행 되는 함수
 void ABlock::OnInteracted(class ADrillerCharacter* Player)
 {
-	Pop(); // 공통 파괴 로직 호출
+	// 1. 같은 색상 블록들을 담을 바구니(TSet)를 준비합니다.
+	TSet<ABlock*> connectedBlocks;
+
+	// 2. [중요] 레이캐스트 대신, 우리가 리팩토링한 Grid 기반 FloodFill을 실행합니다!
+	// 내 색상과 똑같은 인접 블록들을 'connectedBlocks'에 싹 다 담아옵니다.
+	ExecuteFloodFill(this->blockColor, this, connectedBlocks);
+
+	// 3. 바구니에 담긴 블록들을 한꺼번에 팝! 시킵니다.
+	// 4개 미만이어도 플레이어가 직접 캔 것이므로 연결된 건 다 터뜨리는 기획이죠?
+	for (ABlock* block : connectedBlocks)
+	{
+		if (block)
+		{
+			block->Pop();
+		}
+	}
 }
 
 // 블록 파괴 애니메이션이 끝나면 호출되는 함수(블럭을 풀로 되돌림)
@@ -244,49 +247,97 @@ void ABlock::CheckMatch()
 
 void ABlock::Pop()
 {
-	// 1. 상태 초기화 및 충돌 끄기
-	GetWorld()->GetTimerManager().ClearTimer(anticipationTimerHandle);
-	spriteComponent->SetHiddenInGame(true);
-	SetActorEnableCollision(false);
-    
-	// 2. 내 위쪽에 액터가 있다면 깨우기 (연쇄 낙하의 핵심!)
-	AActor* hitActor = GetActorInDirection(FVector(0.f, 0.f, 1.f));
-	if (ABlock* upperBlock = Cast<ABlock>(hitActor))
+	UE_LOG(LogTemp, Warning, TEXT("Block [%d, %d]: POPPED!"), GridX, GridY);
+
+	// 1. 사장님(MapManager)을 모셔옵니다. (GetMapManager 헬퍼가 구현되어 있다고 가정)
+	if (AMapManager* MM = Cast<AMapManager>(GetOwner()))
 	{
-		upperBlock->CheckAndFall();
+		int32 SavedX = GridX;
+		int32 SavedY = GridY;
+       
+		// 2. 사장님! 저 장부에서 지워주시고, 제 위에 있는 애들 떨어뜨려 주세요!
+		MM->RemoveBlockFromGrid(SavedX, SavedY);
+		MM->ProcessFalling(SavedX, SavedY);
+       
+		// 3. [유령 버그 방지] 나는 이제 장부에 없으니 사원증(좌표) 반납!
+		GridX = -1;
+		GridY = -1;
 	}
     
-	// 3. 파괴 이펙트 재생
+	// 파괴 이펙트 재생 및 충돌 끄기 (기존 코드 유지)
 	if (destructionEffectComponent)
 	{
 		destructionEffectComponent->SetHiddenInGame(false);
 		destructionEffectComponent->PlayFromStart();
 	}
+	GetWorld()->GetTimerManager().ClearTimer(anticipationTimerHandle);
+	spriteComponent->SetHiddenInGame(true);
+	SetActorEnableCollision(false);
 }
 
 void ABlock::ExecuteFloodFill(EBlockColor TargetColor, ABlock* CurrentBlock, TSet<ABlock*>& OutMatchedBlocks)
 {
-	// 기저 조건: 방어 코드 1.공간이 비어있을 때 (블록이 아닐 때), 2. 찾는 색상이 아닐 때, 3. 이미 확인한(TSet에 들어있는) 블록일 때 (핵심!)
+	// 1. 기저 조건: 빈 공간이거나, 이미 체크했거나, 색상이 다르면 즉시 리턴
 	if (CurrentBlock == nullptr || CurrentBlock->blockColor != TargetColor || OutMatchedBlocks.Contains(CurrentBlock))
 	{
 		return;
 	}
-	// 검사를 통과했다면 (정상적인 같은 색상의 블록이라면) 배열에 추가!
+
+	// 2. 현재 블록을 '찾음' 목록에 추가
 	OutMatchedBlocks.Add(CurrentBlock);
-	
-	// --- 4방향 탐색 시작 ---
-	//현재 블록의 상/하/좌/우 4방향에 있는 액터를 가져오기
-	FVector CheckDirs[4] = { FVector(0, 0, 1), FVector(0, 0, -1), FVector(1, 0, 0), FVector(-1, 0, 0) };
-	
+    
+	// 3. 사장님(MapManager)을 모셔옵니다.
+	AMapManager* MM = Cast<AMapManager>(GetOwner());
+	if (!MM) return;
+
+	// 4. 상, 하, 좌, 우 4방향의 격자 좌표 오프셋
+	FIntPoint Dirs[4] = { 
+		FIntPoint(0, 1),  // 하
+		FIntPoint(0, -1), // 상
+		FIntPoint(1, 0),  // 우
+		FIntPoint(-1, 0)  // 좌
+	};
+    
 	for (int32 i = 0; i < 4; ++i)
 	{
-		// 1) 액터 가져오기
-		AActor* hitActor = CurrentBlock->GetActorInDirection(CheckDirs[i]);
+		// ⭐ 핵심: 레이캐스트 대신 사장님의 장부에서 옆 좌표에 블록이 있는지 물어봅니다!
+		int32 NextX = CurrentBlock->GridX + Dirs[i].X;
+		int32 NextY = CurrentBlock->GridY + Dirs[i].Y;
         
-		// 2) ABlock으로 형변환 (실패 시 nullptr)
-		ABlock* nextBlock = Cast<ABlock>(hitActor);
+		ABlock* NextBlock = MM->GetBlockAtGrid(NextX, NextY);
         
-		// 3) 자기 자신 호출! (nextBlock이 nullptr이어도 함수 맨 위에서 안전하게 걸러짐)
-		ExecuteFloodFill(TargetColor, nextBlock, OutMatchedBlocks);
+		// 5. 재귀 호출
+		ExecuteFloodFill(TargetColor, NextBlock, OutMatchedBlocks);
 	}
+}
+
+void ABlock::StartFallingTo(FVector NewTargetLocation)
+{
+	// 1. 사장님이 정해준 새로운 목표 위치 저장
+	targetLocation = NewTargetLocation;
+    
+	// 2. 상태를 떨어지는 중으로 변경
+	currentState = EBlockState::Falling;
+    
+	// 3. ⭐ [가장 중요] 멈춰있던 심장(Tick)을 다시 깨워야 화면에서 추락하기 시작합니다!
+	SetActorTickEnabled(true); 
+}
+
+// 1. 블록에게 "곧 떨어질 준비해!"라고 명령하는 함수
+void ABlock::PrepareToFall(FVector NewTargetLocation)
+{
+	targetLocation = NewTargetLocation;
+	currentState = EBlockState::Anticipating; // 흔들림 시작!
+	SetActorTickEnabled(true);
+
+	// 2초 정도 대기 후 실제 낙하 시작 (값은 조절 가능)
+	float Delay = 2.f; 
+	GetWorld()->GetTimerManager().SetTimer(anticipationTimerHandle, this, &ABlock::ActuallyStartFalling, Delay, false);
+}
+
+// 2. 타이머가 끝나면 실제로 물리적 이동을 시작하는 함수
+void ABlock::ActuallyStartFalling()
+{
+	currentState = EBlockState::Falling;
+	spriteComponent->SetRelativeLocation(FVector::ZeroVector); // 흔들림 오프셋 리셋
 }

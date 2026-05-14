@@ -47,4 +47,23 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Map Settings")
 	TArray<class UPaperFlipbook*> blockDestructionFlipbooks;
 #pragma endregion
+	
+public:
+	// [Model] 사장님의 논리적 바둑판 장부
+	UPROPERTY()
+	TMap<FIntPoint, class ABlock*> GridMap;
+
+	void RegisterBlock(int32 Col, int32 Row, class ABlock* Block);
+	void RemoveBlockFromGrid(int32 Col, int32 Row);
+	class ABlock* GetBlockAtGrid(int32 Col, int32 Row);
+	void ProcessFalling(int32 Col, int32 StartRow);
+    
+	// [수정됨] 오타 및 백슬래시 제거
+	bool IsGridEmpty(int32 Col, int32 Row);
+
+	// [복구됨] 맵의 가로 세로 최대 크기 변수
+	UPROPERTY(EditAnywhere, Category = "Map Settings")
+	int32 MaxRows = 20; 
+	UPROPERTY(EditAnywhere, Category = "Map Settings")
+	int32 MaxCols = 10;
 };

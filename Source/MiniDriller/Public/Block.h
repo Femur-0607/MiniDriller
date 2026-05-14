@@ -104,5 +104,14 @@ public:
 	
 	// 1. TargetColor: 기준이 되는 색상(비교), 2. CurrentBlock: 현재 탐색을 진행중인 블록 자신, OutMatchedBlocks:탐색한 블록들을 담아두고 중복을 검사할 컨테이너
 	void ExecuteFloodFill(EBlockColor TargetColor, ABlock* CurrentBlock, TSet<ABlock*>& OutMatchedBlocks);
+	void StartFallingTo(FVector NewTargetLocation);
 #pragma endregion
+	
+public:
+	// [Model] 블록이 자신이 바둑판의 어디에 위치해 있는지 기억할 사원증(좌표)
+	// 초기값은 -1로 설정하여, 스폰 전이나 풀(Pool)에 있을 때는 '장부 밖'임을 명시합니다.
+	int32 GridX = -1;
+	int32 GridY = -1;
+	void PrepareToFall(FVector NewTargetLocation);
+	void ActuallyStartFalling();
 };
