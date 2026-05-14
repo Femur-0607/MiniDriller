@@ -99,30 +99,7 @@ void ABlock::Tick(float DeltaTime)
 // 플레이어가 블록 파괴시 실행 되는 함수
 void ABlock::OnInteracted(class ADrillerCharacter* Player)
 {
-	// 0. 흔들리는 애니메이션 초기화
-	GetWorld()->GetTimerManager().ClearTimer(anticipationTimerHandle);
-	
-	// 1. 기존 스프라이트 숨기기 및 물리 충돌 끄기 (SetActorHiddenInGame은 자식까지 다 숨기므로 금지!)
-	spriteComponent->SetHiddenInGame(true);
-	SetActorEnableCollision(false);
-	
-	// 2. 내 위쪽에 액터가 있는지 확인하고, 그게 ABlock 타입이라면 깨워라!
-	AActor* hitActor = GetActorInDirection(FVector(0.f, 0.f, 1.f));
-	if (hitActor != nullptr)
-	{
-		ABlock* upperBlock = Cast<ABlock>(hitActor);
-		if (upperBlock != nullptr)
-		{
-			upperBlock->CheckAndFall();
-		}
-	}
-	
-	// 3. 숨겨뒀던 파괴 이펙트를 보이게 하고 재생 시작!
-	if (destructionEffectComponent)
-	{
-		destructionEffectComponent->SetHiddenInGame(false);
-		destructionEffectComponent->PlayFromStart(); // 처음부터 재생
-	}
+	Pop(); // 공통 파괴 로직 호출
 }
 
 // 블록 파괴 애니메이션이 끝나면 호출되는 함수(블럭을 풀로 되돌림)
@@ -245,6 +222,45 @@ void ABlock::SetBlockColor(EBlockColor NewColor, class UPaperSprite* NewSprite,c
 	if (destructionEffectComponent && NewFlipbook)
 	{
 		destructionEffectComponent->SetFlipbook(NewFlipbook);
+	}
+}
+
+void ABlock::CheckMatch()
+{
+	TSet<ABlock*> matchedBlocks;
+    
+	// 방금 만든 재귀 함수 실행 (내 색상, 나 자신, 빈 상자 전달)
+	ExecuteFloodFill(this->blockColor, this, matchedBlocks);
+    
+	// 4개 이상 모였는지 판정!
+	if (matchedBlocks.Num() >= 4)
+	{
+		for (ABlock* block : matchedBlocks)
+		{
+			block->Pop(); // 연쇄 반응 시작!
+		}
+	}
+}
+
+void ABlock::Pop()
+{
+	// 1. 상태 초기화 및 충돌 끄기
+	GetWorld()->GetTimerManager().ClearTimer(anticipationTimerHandle);
+	spriteComponent->SetHiddenInGame(true);
+	SetActorEnableCollision(false);
+    
+	// 2. 내 위쪽에 액터가 있다면 깨우기 (연쇄 낙하의 핵심!)
+	AActor* hitActor = GetActorInDirection(FVector(0.f, 0.f, 1.f));
+	if (ABlock* upperBlock = Cast<ABlock>(hitActor))
+	{
+		upperBlock->CheckAndFall();
+	}
+    
+	// 3. 파괴 이펙트 재생
+	if (destructionEffectComponent)
+	{
+		destructionEffectComponent->SetHiddenInGame(false);
+		destructionEffectComponent->PlayFromStart();
 	}
 }
 

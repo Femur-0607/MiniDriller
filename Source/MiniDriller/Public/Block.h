@@ -96,6 +96,12 @@ public:
 	// 블록의 색상과 스프라이트(파괴 애니메이션 포함)를 동적으로 변경하는 함수
 	void SetBlockColor(EBlockColor NewColor, class UPaperSprite* NewSprite, class UPaperFlipbook* NewFlipbook);
 	
+	// 매치 검사 및 파괴 로직
+	void CheckMatch();
+	
+	// 블럭 파괴 로직
+	void Pop();
+	
 	// 1. TargetColor: 기준이 되는 색상(비교), 2. CurrentBlock: 현재 탐색을 진행중인 블록 자신, OutMatchedBlocks:탐색한 블록들을 담아두고 중복을 검사할 컨테이너
 	void ExecuteFloodFill(EBlockColor TargetColor, ABlock* CurrentBlock, TSet<ABlock*>& OutMatchedBlocks);
 #pragma endregion
