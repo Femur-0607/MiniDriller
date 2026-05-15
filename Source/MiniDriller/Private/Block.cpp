@@ -159,7 +159,7 @@ void ABlock::Pop()
 		destructionEffectComponent->PlayFromStart();
 	}
 	GetWorld()->GetTimerManager().ClearTimer(anticipationTimerHandle);
-	spriteComponent->SetHiddenInGame(true);
+	spriteComponent->SetHiddenInGame(true,true);
 	SetActorEnableCollision(false);
 }
 

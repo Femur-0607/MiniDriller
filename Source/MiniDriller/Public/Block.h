@@ -49,7 +49,7 @@ protected:
 	virtual void BeginPlay() override;
 	
 	// --- 상호작용 및 파괴 시스템 ---
-#pragma region Interaction System
+#pragma region InteractionSystem
 public:
 	// 블록 파괴 시 호출되는 델리게이트 변수
 	FOnBlockDestroyed onBlockDestroyedDelegate;
@@ -78,7 +78,7 @@ private:
 #pragma endregion
 
 	// --- 낙하 시스템 ---
-#pragma region Falling System
+#pragma region FallingSystem
 public:
 	EBlockState currentState = EBlockState::Idle; // 블록의 현재 상태 기본값 Idle
 	FVector targetLocation; // 목표 낙하 위치 (도착해야 할 Z 좌표)
@@ -90,7 +90,7 @@ public:
 	void PrepareToFall(FVector NewTargetLocation); // 블록에게 "곧 떨어질 준비해!"라고 명령하는 함수
 	void ActuallyStartFalling(); // 타이머가 끝나면 실제로 물리적 이동을 시작하는 함수
 
-private:
+protected:
 	// 흔들림 효과 타이머 핸들러 (유니티의 Coroutine 대체)
 	struct FTimerHandle anticipationTimerHandle;
 	float shakeOffset;

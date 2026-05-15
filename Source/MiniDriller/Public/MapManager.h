@@ -6,6 +6,15 @@
 #include "GameFramework/Actor.h"
 #include "MapManager.generated.h"
 
+// 블록 타입을 관리하기 위한 열거형
+UENUM(BlueprintType)
+enum class EBlockType : uint8
+{
+	Normal,
+	Oxygen,
+	Obstacle
+};
+
 UCLASS()
 class MINIDRILLER_API AMapManager : public AActor
 {
@@ -23,29 +32,49 @@ protected:
 public:
 	// 어떤 종류의 블록을 스폰할지 에디터에서 선택할 수 있게 합니다.
 	UPROPERTY(EditAnywhere, Category = "Map Settings")
-	TSubclassOf<class ABlock> blockClass;
+	TSubclassOf<class ABlock> BlockClass;
 	UPROPERTY(EditAnywhere)
-	TArray<class ABlock*> blockPool; // 재활용 블록 배열 (화면 높이 + 여유분 약 20줄)
+	TArray<class ABlock*> BlockPool; // 재활용 블록 배열 (화면 높이 + 여유분 약 20줄)
 	UPROPERTY(EditAnywhere)
-	float tileSize; // 타일의 기준 크기
+	float TileSize; // 타일의 기준 크기
 	// 맵의 가로 세로 최대 크기 변수
 	UPROPERTY(EditAnywhere, Category = "Map Settings")
 	int32 MaxRows = 20; 
 	UPROPERTY(EditAnywhere, Category = "Map Settings")
 	int32 MaxCols = 10;
 	
-	void InitializeMap(); // Reserve를 통한 초기 여유분 블록 풀 스폰 및 배치
-	void ReturnBlockToPool(class ABlock* ReturnedBlock); // 블록이 파괴될 때 델리게이트를 통해 호출되는 회수 함수
+	// 기존의 줄 생성 로직에 확률을 더합니다.
+	void SpawnNewRow(int32 RowIndex);
+	// 블록이 Pop 되었을 때 다시 풀로 돌려받는 함수
+	UFUNCTION()
+	void ReturnBlockToPool(ABlock* returnedBlock);
+
+	// 1. 에디터에서 할당할 클래스 종류들
+	UPROPERTY(EditAnywhere, Category = "Pool | Classes")
+	TSubclassOf<class ABlock> NormalBlockClass;
+	UPROPERTY(EditAnywhere, Category = "Pool | Classes")
+	TSubclassOf<class AOxygenBlock> OxygenBlockClass;
+	UPROPERTY(EditAnywhere, Category = "Pool | Classes")
+	TSubclassOf<class AObstacleBlock> ObstacleBlockClass;
+	// 2. 비활성화된 블록들을 담아둘 바구니 (Pools)
+	TArray<ABlock*> NormalPool;
+	TArray<ABlock*> OxygenPool;
+	TArray<ABlock*> ObstaclePool;
+
+	// 3. 풀 초기화 함수
+	void InitializePools();
+	// 4. 풀에서 블록을 꺼내오는 핵심 함수
+	ABlock* GetBlockFromPool(EBlockType Type);
 #pragma endregion
 	
 	// --- 블럭 색상 및 매칭 시스템 --- 
 #pragma region Color and Matching System
 	// 에디터에서 [0]:파랑, [1]:초록, [2]:빨강, [3]:노랑 스프라이트를 직접 할당할 배열
 	UPROPERTY(EditAnywhere, Category = "Map Settings")
-	TArray<class UPaperSprite*> blockSprites;
+	TArray<class UPaperSprite*> BlockSprites;
 	// 에디터에서 [0]:파랑, [1]:초록, [2]:빨강, [3]:노랑 플립북(파괴 이펙트)를 직접 할당할 배열
 	UPROPERTY(EditAnywhere, Category = "Map Settings")
-	TArray<class UPaperFlipbook*> blockDestructionFlipbooks;
+	TArray<class UPaperFlipbook*> BlockDestructionFlipbooks;
 	// [Model] 사장님의 논리적 바둑판 장부
 	UPROPERTY()
 	TMap<FIntPoint, class ABlock*> GridMap;

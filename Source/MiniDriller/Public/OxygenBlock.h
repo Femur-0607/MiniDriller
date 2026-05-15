@@ -23,5 +23,4 @@ public:
 	// 다형성의 핵심: 부모(ABlock)의 가상 함수를 덮어쓰기(Override) 합니다.
 	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
 	virtual void OnInteracted(class ADrillerCharacter* Player) override;
-	virtual void Pop() override;
 };
