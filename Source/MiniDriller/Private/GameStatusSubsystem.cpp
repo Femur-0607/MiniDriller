@@ -2,6 +2,8 @@
 
 
 #include "GameStatusSubsystem.h"
+#include "Engine/World.h"
+#include "TimerManager.h"
 
 void UGameStatusSubsystem::NotifyPlayerDeath()
 {
@@ -17,9 +19,47 @@ void UGameStatusSubsystem::NotifyPlayerDeath()
 bool UGameStatusSubsystem::IsGameOver() const
 {
 	// 산소가 0 이하로 떨어졌거나(OR) 플레이어가 사망했다면 게임 오버!
-	return (CurrentOxygen <= 0.f) || bIsPlayerDead; 
+	return (currentOxygen <= 0.f) || bIsPlayerDead; 
 }
 
-void UGameStatusSubsystem::AddScore(int32 Amount) { TotalScore += Amount; }
-void UGameStatusSubsystem::ConsumeOxygen(float Amount) { CurrentOxygen -= Amount; }
+void UGameStatusSubsystem::AddScore(int32 Amount) { totalScore += Amount; }
+void UGameStatusSubsystem::ConsumeOxygen(float Amount) { currentOxygen -= Amount; }
 void UGameStatusSubsystem::CheckLevelUp() { /* 깊이 체크 및 레벨업 로직 추가 예정 */ }
+
+void UGameStatusSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+
+	/// 1초마다 DecreaseOxygenTick 함수를 반복 실행하도록 타이머 설정
+	GetWorld()->GetTimerManager().SetTimer(
+		oxygenTimerHandle,                           // 조종할 핸들 변수 (lowerCamelCase 적용)
+		this,                                        // 함수를 보유한 객체 (서브시스템 자신)
+		&UGameStatusSubsystem::DecreaseOxygenTick,   // 실행할 함수의 메모리 주소(포인터)
+		1.0f,                                        // 실행 주기 (초)
+		true                                         // 반복 여부 (true)
+	);
+}
+
+void UGameStatusSubsystem::Deinitialize()
+{
+	// 메모리 누수 방지를 위해 타이머 해제
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(oxygenTimerHandle);
+	}
+	
+	Super::Deinitialize();
+}
+
+// 산소를 감소시키는 로직
+void UGameStatusSubsystem::DecreaseOxygenTick()
+{
+	// 산소를 초당 1씩 감소
+	ConsumeOxygen(1.0f);
+	
+	if (IsGameOver())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(oxygenTimerHandle);
+		NotifyPlayerDeath();
+	}
+}

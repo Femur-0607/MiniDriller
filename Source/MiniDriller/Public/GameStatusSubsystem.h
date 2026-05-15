@@ -8,7 +8,7 @@
 // 블루프린트에서도 쓸 수 있는 다이내믹 델리게이트 선언
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDiedDelegate);
 
-UCLASS()
+UCLASS(BlueprintType)
 class MINIDRILLER_API UGameStatusSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
@@ -22,16 +22,16 @@ public:
 
 #pragma region Game Data
 	UPROPERTY(BlueprintReadWrite, Category = "Game Data")
-	float CurrentOxygen = 100.f; // 초기 산소량
+	float currentOxygen = 100.f; // 초기 산소량
 
 	UPROPERTY(BlueprintReadWrite, Category = "Game Data")
-	int32 CurrentDepth = 0;
+	int32 currentDepth = 0;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Game Data")
-	int32 CurrentLevel = 1;
+	int32 currentLevel = 1;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Game Data")
-	int32 TotalScore = 0;
+	int32 totalScore = 0;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Game Data")
 	bool bIsPlayerDead = false;
@@ -54,5 +54,24 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Game Logic")
 	void CheckLevelUp();
+#pragma endregion
+	
+protected:
+	// 서브시스템이 생성될 때 엔진이 호출해주는 초기화 함수
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	
+	// 서브시스템이 파괴될 때 호출되는 함수 (타이머 정리용)
+	virtual void Deinitialize() override;
+	
+	// 산소 시스템 로직
+#pragma region OxgenGameLogic
+private:
+	// 산소 감소 타이머 핸들
+	UPROPERTY()
+	FTimerHandle oxygenTimerHandle;
+
+	// 1초마다 호출될 산소 감소 함수
+	UFUNCTION()
+	void DecreaseOxygenTick();
 #pragma endregion
 };
