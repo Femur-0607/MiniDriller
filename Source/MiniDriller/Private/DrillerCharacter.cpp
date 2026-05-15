@@ -44,6 +44,9 @@ void ADrillerCharacter::BeginPlay()
 			subsystem->AddMappingContext(defaultMappingContext, 0);
 		}
 	}
+	
+	// 시작할 때의 높이를 최저점으로 초기화합니다. (2D 플랫포머는 보통 Z축이 위아래입니다)
+	lowestZ = GetActorLocation().Z;
 }
 
 void ADrillerCharacter::Tick(float DeltaTime)
@@ -55,6 +58,22 @@ void ADrillerCharacter::Tick(float DeltaTime)
 	{
 		// 스프라이트만 위로 부드럽게 둥둥 띄웁니다. (속도는 150.f, 취향껏 조절!)
 		GetSprite()->AddRelativeLocation(FVector(0.f, 0.f, 150.f * DeltaTime));
+	}
+	
+	// 1. 현재 Z축 위치를 가져옵니다.
+	float currentZ = GetActorLocation().Z;
+
+	// 2. 현재 위치가 '기록된 최저점'보다 42(블록 1칸) 이상 더 아래로 내려갔다면?
+	if (currentZ <= lowestZ - 42.0f)
+	{
+		// 3. 최저점을 한 칸(42) 아래로 갱신합니다.
+		lowestZ -= 42.0f; 
+
+		// 4. 서브시스템에 논리적 깊이(5m)를 추가합니다!
+		if (UGameStatusSubsystem* status = GetWorld()->GetSubsystem<UGameStatusSubsystem>())
+		{
+			status->AddDepth(5); 
+		}
 	}
 }
 

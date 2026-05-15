@@ -62,11 +62,11 @@ public:
 	void OnDestructionEffectFinished();
 	
 	// 플레이어와 충돌 및 상호작용 시 실행되는 함수
-	virtual void OnInteracted(class ADrillerCharacter* Player);
+	void OnInteracted(class ADrillerCharacter* Player);
 	// 매치 검사 및 파괴 로직(바닥 도착 시 4개 이상일 경우 파괴(연쇄 파괴))
 	void CheckMatch();
 	// 블럭 파괴 로직
-	void Pop();
+	virtual void Pop();
 	
 protected:
 	// 유니티의 OnTriggerEnter 역할 (언리얼 AActor에 기본 내장된 함수를 덮어쓰기)

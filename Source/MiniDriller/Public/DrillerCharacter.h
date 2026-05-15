@@ -38,6 +38,7 @@ protected:
 	UInputAction* digAction;
 #pragma endregion
 	
+	// 드릴 로직
 #pragma region Drill
 	// 드릴 관련 변수
 	UPROPERTY(BlueprintReadOnly, Category = "Movement")
@@ -70,7 +71,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 	void StopDigging();
+#pragma endregion
 	
+	// 플레이어 사망 로직
+#pragma region Death
 protected:
 	// 플레이어 사망(찌부러짐) 상태
 	UPROPERTY(BlueprintReadOnly, Category = "State")
@@ -95,4 +99,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "State")
 	bool GetIsFloating() const;
+#pragma endregion
+	
+private:
+	// 플레이어가 도달한 최저점(가장 아래 위치)을 기억할 변수
+	float lowestZ;
 };

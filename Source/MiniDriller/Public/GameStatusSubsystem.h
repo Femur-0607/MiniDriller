@@ -21,14 +21,11 @@ public:
 #pragma endregion
 
 #pragma region Game Data
-	UPROPERTY(BlueprintReadWrite, Category = "Game Data")
-	float currentOxygen = 100.f; // 초기 산소량
+	
 
-	UPROPERTY(BlueprintReadWrite, Category = "Game Data")
-	int32 currentDepth = 0;
+	
 
-	UPROPERTY(BlueprintReadWrite, Category = "Game Data")
-	int32 currentLevel = 1;
+	
 
 	UPROPERTY(BlueprintReadWrite, Category = "Game Data")
 	int32 totalScore = 0;
@@ -48,12 +45,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Game Logic")
 	void AddScore(int32 Amount);
+	
 
-	UFUNCTION(BlueprintCallable, Category = "Game Logic")
-	void ConsumeOxygen(float Amount);
 
-	UFUNCTION(BlueprintCallable, Category = "Game Logic")
-	void CheckLevelUp();
 #pragma endregion
 	
 protected:
@@ -65,6 +59,16 @@ protected:
 	
 	// 산소 시스템 로직
 #pragma region OxgenGameLogic
+public:
+	UPROPERTY(BlueprintReadWrite, Category = "Game Data")
+	float currentOxygen = 100.f; // 초기 산소량
+	// 산소를 증가시키는 로직
+	UFUNCTION(BlueprintCallable, Category = "Game Logic")
+	void AddOxygen(float Amount);
+	// 산소를 감소시키는 로직
+	UFUNCTION(BlueprintCallable, Category = "Game Logic")
+	void ConsumeOxygen(float Amount);
+	
 private:
 	// 산소 감소 타이머 핸들
 	UPROPERTY()
@@ -73,5 +77,22 @@ private:
 	// 1초마다 호출될 산소 감소 함수
 	UFUNCTION()
 	void DecreaseOxygenTick();
+#pragma endregion
+	
+	// 깊이 시스템 로직
+#pragma region DepthGameLogic
+public:
+	
+	UPROPERTY(BlueprintReadWrite, Category = "Game Data")
+	int32 currentDepth = 0;
+	
+	UPROPERTY(BlueprintReadWrite, Category = "Game Data")
+	int32 currentLevel = 1;
+	
+	UFUNCTION(BlueprintCallable, Category = "Game Logic")
+	void AddDepth(int32 Amount);
+	
+	UFUNCTION(BlueprintCallable, Category = "Game Logic")
+	void CheckLevelUp();
 #pragma endregion
 };

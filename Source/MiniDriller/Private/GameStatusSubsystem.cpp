@@ -24,7 +24,12 @@ bool UGameStatusSubsystem::IsGameOver() const
 
 void UGameStatusSubsystem::AddScore(int32 Amount) { totalScore += Amount; }
 void UGameStatusSubsystem::ConsumeOxygen(float Amount) { currentOxygen -= Amount; }
-void UGameStatusSubsystem::CheckLevelUp() { /* 깊이 체크 및 레벨업 로직 추가 예정 */ }
+void UGameStatusSubsystem::AddOxygen(float Amount)
+{
+	currentOxygen += Amount;
+	// 산소가 100.0f를 넘지 않도록 Clamp (Simplicity First!)
+	currentOxygen = FMath::Clamp(currentOxygen, 0.0f, 100.0f); 
+}
 
 void UGameStatusSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -51,7 +56,7 @@ void UGameStatusSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-// 산소를 감소시키는 로직
+
 void UGameStatusSubsystem::DecreaseOxygenTick()
 {
 	// 산소를 초당 1씩 감소
@@ -61,5 +66,26 @@ void UGameStatusSubsystem::DecreaseOxygenTick()
 	{
 		GetWorld()->GetTimerManager().ClearTimer(oxygenTimerHandle);
 		NotifyPlayerDeath();
+	}
+}
+
+void UGameStatusSubsystem::AddDepth(int32 Amount)
+{
+	// 1. currentDepth에 Amount를 더합니다.
+    currentDepth += Amount;
+	// 2. 깊이가 증가했으니 레벨업 조건에 도달했는지 검사합니다.
+	CheckLevelUp();
+}
+
+void UGameStatusSubsystem::CheckLevelUp()
+{
+	// [Simplicity First] 가장 단순한 수학적 레벨업 공식입니다.
+	// 현재 깊이가 (현재 레벨 * 100) 보다 크거나 같다면 레벨을 올립니다.
+	if (currentDepth >= currentLevel * 100)
+	{
+		currentLevel++;
+        
+		// TODO: 나중에 여기에 난이도 증가(산소 소모량 증가, 매니저에 폭발 지시) 로직을 추가할 예정입니다.
+		UE_LOG(LogTemp, Warning, TEXT("Level Up! Current Level: %d"), currentLevel);
 	}
 }
