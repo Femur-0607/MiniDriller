@@ -21,6 +21,17 @@ void AOxygenBlock::BeginPlay()
 	Super::BeginPlay();
 }
 
+void AOxygenBlock::OnInteracted(class ADrillerCharacter* Player)
+{
+	// [중요] 부모의 연쇄 파괴 로직을 막기 위해 Super::OnInteracted를 절대 부르지 않습니다!
+    
+	// 몸으로 닿았을 때와 똑같이 산소를 주고 파괴되도록 처리합니다.
+	if (UGameStatusSubsystem* statusSubsystem = GetWorld()->GetSubsystem<UGameStatusSubsystem>())
+	{
+		statusSubsystem->AddOxygen(20.0f);
+	}
+	Pop();
+}
 
 void AOxygenBlock::NotifyActorBeginOverlap(AActor* OtherActor)
 {

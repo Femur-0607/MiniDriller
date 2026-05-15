@@ -62,7 +62,7 @@ public:
 	void OnDestructionEffectFinished();
 	
 	// 플레이어와 충돌 및 상호작용 시 실행되는 함수
-	void OnInteracted(class ADrillerCharacter* Player);
+	virtual void OnInteracted(class ADrillerCharacter* Player);
 	// 매치 검사 및 파괴 로직(바닥 도착 시 4개 이상일 경우 파괴(연쇄 파괴))
 	void CheckMatch();
 	// 블럭 파괴 로직
