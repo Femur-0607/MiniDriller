@@ -104,4 +104,13 @@ public:
 private:
 	// 플레이어가 도달한 최저점(가장 아래 위치)을 기억할 변수
 	float lowestZ;
+	// 조작감을 위한 방향 전환 딜레이 변수
+	bool bWasBlockedLastFrame = false; // 직전 프레임에 벽에 막혀 있었는가?
+	float currentFacingDir = 1.0f;     // 현재 바라보는 방향
+	float turnDelayTimer = 0.0f;       // 턴/등반 유예 타이머
+	// 조작감을 위한 방향 전환 딜레이 변수
+	float climbEnableTimer = 0.0f; // 등판 허용까지 남은 시간
+	const float CLIMB_DELAY = 0.3f; // 0.3초 정도 버티면 올라감
+	const float DEFAULT_STEP_HEIGHT = 45.0f; // 블록 1칸(42)을 넘을 수 있는 높이
+	float RayIntersection = 25.0f;; // 레이 사거리
 };

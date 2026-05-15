@@ -75,6 +75,9 @@ public:
 	// 에디터에서 [0]:파랑, [1]:초록, [2]:빨강, [3]:노랑 플립북(파괴 이펙트)를 직접 할당할 배열
 	UPROPERTY(EditAnywhere, Category = "Map Settings")
 	TArray<class UPaperFlipbook*> BlockDestructionFlipbooks;
+	// 에디터에서 [0]:파랑, [1]:초록, [2]:빨강, [3]:노랑 플립북(파괴효과 이펙트)를 직접 할당할 배열
+	UPROPERTY(EditAnywhere, Category = "Map Settings")
+	TArray<class UPaperFlipbook*> BlockEffectFlipbooks;
 	// [Model] 사장님의 논리적 바둑판 장부
 	UPROPERTY()
 	TMap<FIntPoint, class ABlock*> GridMap;

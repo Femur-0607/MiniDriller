@@ -24,8 +24,13 @@ ABlock::ABlock()
 	spriteComponent->SetupAttachment(RootComponent);
 	
 	// 3. 파괴 이펙트(플립북) 컴포넌트 부착 및 초기 세팅
+	destructionComponent = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("Destruction"));
+	destructionComponent->SetupAttachment(RootComponent);
+	destructionComponent->SetLooping(false); // 반복 재생 금지
+	
+	// 3. 파괴효과 이펙트(플립북) 컴포넌트 부착 및 초기 세팅
 	destructionEffectComponent = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("DestructionEffect"));
-	destructionEffectComponent->SetupAttachment(RootComponent);
+	destructionEffectComponent->SetupAttachment(destructionComponent);
 	destructionEffectComponent->SetLooping(false); // 반복 재생 금지
 }
 
@@ -35,13 +40,13 @@ void ABlock::BeginPlay()
 	Super::BeginPlay();
 	
 	// 시작할 때는 이펙트가 안 보이게 숨겨둡니다.
-	if (destructionEffectComponent)
+	if (destructionComponent || destructionEffectComponent)
 	{
-		destructionEffectComponent->SetHiddenInGame(true);
+		destructionComponent->SetHiddenInGame(true, true);
         
 		// 애니메이션이 끝났을 때(OnFinishedPlaying) 내 함수(OnDestructionEffectFinished)를 실행하도록 연결합니다.
 		//OnFinishedPlaying는 사운드, 비디오, 애니메이션 또는 레벨 시퀀스가 재생을 마치고 끝에 도달했을때 실행되는 콜백 함수나 이벤트
-		destructionEffectComponent->OnFinishedPlaying.AddDynamic(this, &ABlock::OnDestructionEffectFinished);
+		destructionComponent->OnFinishedPlaying.AddDynamic(this, &ABlock::OnDestructionEffectFinished);
 	}
 	
 }
@@ -56,7 +61,7 @@ void ABlock::OnDestructionEffectFinished()
 	}
 
 	// 풀에 들어갔다가 다시 나올 때를 대비해 상태를 초기화합니다.
-	destructionEffectComponent->SetHiddenInGame(true);
+	destructionComponent->SetHiddenInGame(true,true);
 }
 
 void ABlock::Tick(float DeltaTime)
@@ -120,6 +125,12 @@ void ABlock::OnInteracted(class ADrillerCharacter* Player)
 
 void ABlock::CheckMatch()
 {
+	// ✅ [추가된 방어 코드] 색상이 없는 특수 블록(산소, 장애물)은 연쇄 파괴(Match) 검사를 패스합니다!
+	if (blockColor == EBlockColor::None)
+	{
+		return;
+	}
+	
 	TSet<ABlock*> matchedBlocks;
     
 	// 방금 만든 재귀 함수 실행 (내 색상, 나 자신, 빈 상자 전달)
@@ -153,11 +164,14 @@ void ABlock::Pop()
 	}
     
 	// 파괴 이펙트 재생 및 충돌 끄기
-	if (destructionEffectComponent)
+	if (destructionComponent || destructionEffectComponent)
 	{
+		destructionComponent->SetHiddenInGame(false);
 		destructionEffectComponent->SetHiddenInGame(false);
+		destructionComponent->PlayFromStart();
 		destructionEffectComponent->PlayFromStart();
 	}
+	
 	GetWorld()->GetTimerManager().ClearTimer(anticipationTimerHandle);
 	spriteComponent->SetHiddenInGame(true,true);
 	SetActorEnableCollision(false);
@@ -208,7 +222,7 @@ void ABlock::ActuallyStartFalling()
 
 // --- 블럭 색상 시스템 --- 
 #pragma region Color
-void ABlock::SetBlockColor(EBlockColor NewColor, class UPaperSprite* NewSprite,class UPaperFlipbook* NewFlipbook)
+void ABlock::SetBlockColor(EBlockColor NewColor, class UPaperSprite* NewSprite,class UPaperFlipbook* NewFlipbook, class UPaperFlipbook* NewEffectFlipbook)
 {
 	blockColor = NewColor;
     
@@ -218,11 +232,18 @@ void ABlock::SetBlockColor(EBlockColor NewColor, class UPaperSprite* NewSprite,c
 		spriteComponent->SetSprite(NewSprite);
 	}
 
-	// 2. 플립북 교체 (플립북 에셋이 정상적으로 들어왔을 때만)
-	if (destructionEffectComponent && NewFlipbook)
+	// 2. 파괴플립북 교체 (플립북 에셋이 정상적으로 들어왔을 때만)
+	if (destructionComponent && NewFlipbook)
 
 	{
-		destructionEffectComponent->SetFlipbook(NewFlipbook);
+		destructionComponent->SetFlipbook(NewFlipbook);
+	}
+	
+	// 2. 파괴효과플립북 교체 (플립북 에셋이 정상적으로 들어왔을 때만)
+	if (destructionEffectComponent && NewEffectFlipbook)
+
+	{
+		destructionEffectComponent->SetFlipbook(NewEffectFlipbook);
 	}
 }
 

@@ -123,9 +123,10 @@ void AMapManager::SpawnNewRow(int32 RowIndex)
 				// 에디터에서 할당한 배열(크기 4)에서 꺼내오기 위해 인덱스 - 1을 해줍니다 (0~3)
 				UPaperSprite* SelectedSprite = BlockSprites.IsValidIndex(ColorIndex - 1) ? BlockSprites[ColorIndex - 1] : nullptr;
 				UPaperFlipbook* SelectedFlipbook = BlockDestructionFlipbooks.IsValidIndex(ColorIndex - 1) ? BlockDestructionFlipbooks[ColorIndex - 1] : nullptr;
+				UPaperFlipbook* SelectedEffectFlipbook = BlockEffectFlipbooks.IsValidIndex(ColorIndex - 1) ? BlockEffectFlipbooks[ColorIndex - 1] : nullptr;
 
 				// 블록에 랜덤 색상과 스프라이트 적용
-				NewBlock->SetBlockColor(RandomColor, SelectedSprite, SelectedFlipbook);
+				NewBlock->SetBlockColor(RandomColor, SelectedSprite, SelectedFlipbook, SelectedEffectFlipbook);
 			}
 			
 			// 1. 물리적 위치 설정 (Z축을 밑으로 내림)

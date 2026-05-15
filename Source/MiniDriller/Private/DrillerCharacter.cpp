@@ -28,6 +28,9 @@ ADrillerCharacter::ADrillerCharacter()
 		// Y축 이동 고정
 		GetCharacterMovement()->bConstrainToPlane = true;
 		GetCharacterMovement()->SetPlaneConstraintNormal(FVector(0.0f, 1.0f, 0.0f));
+		
+		// 시작할 때는 계단을 못 올라가게 0으로 설정합니다.
+		GetCharacterMovement()->MaxStepHeight = 0.0f;
 	}
 }
 
@@ -92,27 +95,59 @@ void ADrillerCharacter::SetupPlayerInputComponent(UInputComponent* playerInputCo
 
 void ADrillerCharacter::Move(const FInputActionValue& value)
 {
-	if (bIsDead) return;
-	
-	// 입력 값 가져오기 (float)
+	if (bIsDead || bIsDigging) return;
+    
 	float moveVector = value.Get<float>();
+	if (moveVector == 0.f) return;
 
-	if (Controller != nullptr && moveVector != 0.f)
+	float inputDir = FMath::Sign(moveVector);
+    
+	// 1. 방향 전환 시 즉시 회전
+	if (inputDir != currentFacingDir)
 	{
-		// 1. 이동 입력 전달
-		AddMovementInput(FVector(1.0f, 0.0f, 0.0f), moveVector);
-
-		// 스프라이트 방향 제어 (PaperZD와 연동 시 가장 깔끔한 방식)
-		// 캐릭터 몸체는 가만히 두고 Sprite 컴포넌트만 Yaw 값을 조절해 반전시킵니다.
-		// 왼쪽(< 0)일 때는 원본 그대로 0도, 오른쪽일 때 180도 회전
-		float targetYaw = (moveVector < 0.f) ? 0.f : 180.f;
-		GetSprite()->SetRelativeRotation(FRotator(0.f, targetYaw, 0.f));
+		currentFacingDir = inputDir;
+		GetSprite()->SetRelativeRotation(FRotator(0.f, (currentFacingDir < 0.f) ? 0.f : 180.f, 0.f));
+		climbEnableTimer = 0.0f; // 방향 바꾸면 타이머 초기화
 	}
+
+	// 2. 앞에 벽(블록)이 있는지 체크
+	FHitResult wallHit;
+	FVector start = GetActorLocation();
+	FVector end = start + FVector(inputDir * RayIntersection, 0.0f, 0.0f);
+	FCollisionQueryParams params;
+	params.AddIgnoredActor(this);
+
+	bool bHitBlock = GetWorld()->LineTraceSingleByChannel(wallHit, start, end, ECC_Visibility, params) && Cast<ABlock>(wallHit.GetActor());
+
+	if (bHitBlock)
+	{
+		// 벽을 향해 계속 밀고 있다면 타이머 증가
+		climbEnableTimer += GetWorld()->GetDeltaSeconds(); // Move가 매 프레임 호출되므로 누적 가능
+
+		if (climbEnableTimer >= CLIMB_DELAY)
+		{
+			// 지연 시간이 지났으므로 계단 오르기 능력 개방!
+			GetCharacterMovement()->MaxStepHeight = DEFAULT_STEP_HEIGHT;
+		}
+	}
+	else
+	{
+		// 벽이 없으면 즉시 능력 회수 및 타이머 초기화
+		climbEnableTimer = 0.0f;
+		GetCharacterMovement()->MaxStepHeight = 0.0f;
+	}
+
+	// 이동 입력은 항상 넣어줍니다. (MaxStepHeight가 0이면 알아서 못 가고 비비기만 합니다)
+	AddMovementInput(FVector(1.0f, 0.0f, 0.0f), moveVector);
 }
 
 void ADrillerCharacter::Dig()
 {
 	if (bIsDead) return;
+	
+	// 1. 디깅 연타로 인해 애니메이션이 1프레임만에 계속 리셋되는 것을 방지합니다.
+	// (이 줄이 들어가야 연속 파기를 할 때 모션이 꼬이지 않습니다!)
+	if (bIsDigging) return;
 	
 	StartDigging();
 	
@@ -122,6 +157,7 @@ void ADrillerCharacter::Dig()
 	FVector digDirection = FVector(0.f, 0.f, -1.f);
 	// 2-1. 캐릭터에 입력된 마지막 이동 벡터를 가져옵니다.
 	FVector lastInput = GetLastMovementInputVector();
+	
 	// 2-2. X축 입력이 존재한다면 (좌/우 이동 키를 누르고 있다면) 방향을 덮어씁니다.
 	if (!FMath::IsNearlyZero(lastInput.X))
 	{
@@ -139,7 +175,7 @@ void ADrillerCharacter::Dig()
 	}
 	
 	// 3. 레이캐스트 끝점(시작점 + (바라보는 방향 * 채굴 사거리))을 계산합니다.
-	FVector rayEnd = rayStart + (digDirection * 42.f); // Z축 아래로 42 유닛
+	FVector rayEnd = rayStart + (digDirection * RayIntersection); // Z축 아래로 30 유닛
 	// 4. FHitResult 구조체를 선언하여 충돌 결과를 담을 바구니를 준비합니다.
 	FHitResult hit;
 	// 5. GetWorld()->LineTraceSingleByChannel(...) 함수를 호출하여 레이를 발사합니다.
@@ -162,6 +198,14 @@ void ADrillerCharacter::Dig()
 		if (HitBlock != nullptr)
 		{
 			HitBlock->OnInteracted(this);
+			
+			// 4. [핵심 2] 아래로 파기에 성공했다면 속도 주입 (스매시)
+			if (!bIsDiggingSide)
+			{
+				// ✅ [핵심 해결책] 엔진에게 강제로 "낙하 모드"로 전환하라고 명령합니다!
+				// 이렇게 하면 42만큼 얕게 파더라도 계단 스냅(순간이동)이 발생하지 않고 부드럽게 떨어집니다.
+				GetCharacterMovement()->SetMovementMode(MOVE_Falling);
+			}
 		}
 	}
 }
@@ -181,8 +225,11 @@ void ADrillerCharacter::StartDigging()
 	if (!bIsDigging)
 	{
 		bIsDigging = true;
-		// 이동 입력 제한
-		GetCharacterMovement()->DisableMovement(); 
+		
+		// 현재 속도에서 좌우(X)만 0으로 만들고, 중력(Z)은 그대로 둡니다!
+		FVector currentVelocity = GetCharacterMovement()->Velocity;
+		currentVelocity.X = 0.0f; 
+		GetCharacterMovement()->Velocity = currentVelocity;
 	}
 }
 
@@ -192,8 +239,6 @@ void ADrillerCharacter::StopDigging()
 	if (bIsDigging)
 	{
 		bIsDigging = false;
-		// 이동 입력 다시 활성화
-		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	}
 }
 

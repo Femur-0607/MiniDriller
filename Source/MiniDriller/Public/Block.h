@@ -43,6 +43,12 @@ public:
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	class UPaperSpriteComponent* spriteComponent;	// UPaperSpriteComponent 언리얼에서 스프라이트 렌더링 및 충돌 처리를 담당하는 클래스
+	// 파괴 이펙트를 담당할 플립북 컴포넌트
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	class UPaperFlipbookComponent* destructionComponent;
+	// 파괴효과 이펙트를 담당할 플립북 컴포넌트
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	class UPaperFlipbookComponent* destructionEffectComponent;
 	
 protected:
 	// Called when the game starts or when spawned
@@ -53,9 +59,6 @@ protected:
 public:
 	// 블록 파괴 시 호출되는 델리게이트 변수
 	FOnBlockDestroyed onBlockDestroyedDelegate;
-	// 파괴 이펙트를 담당할 플립북 컴포넌트
-	UPROPERTY(VisibleAnywhere, Category = "Components")
-	class UPaperFlipbookComponent* destructionEffectComponent;
 	
 	// 애니메이션 재생이 끝났을 때 엔진이 호출해 줄 함수
 	UFUNCTION()
@@ -103,7 +106,7 @@ public:
 	EBlockColor blockColor = EBlockColor::None;
 	
 	// 블록의 색상과 스프라이트(파괴 애니메이션 포함)를 동적으로 변경하는 함수
-	void SetBlockColor(EBlockColor NewColor, class UPaperSprite* NewSprite, class UPaperFlipbook* NewFlipbook);
+	void SetBlockColor(EBlockColor NewColor, class UPaperSprite* NewSprite, class UPaperFlipbook* NewFlipbook, class UPaperFlipbook* NewEffectFlipbook);
 	
 	// 1. TargetColor: 기준이 되는 색상(비교), 2. CurrentBlock: 현재 탐색을 진행중인 블록 자신, OutMatchedBlocks:탐색한 블록들을 담아두고 중복을 검사할 컨테이너
 	void ExecuteFloodFill(EBlockColor TargetColor, ABlock* CurrentBlock, TSet<ABlock*>& OutMatchedBlocks);
